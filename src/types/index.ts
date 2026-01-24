@@ -76,11 +76,19 @@ export interface OrderItemResponse {
   paymentTransactionId?: string;
 }
 
+export type OrderStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'RETURN_REQUESTED';
+
 export interface OrderResponse {
   id: number;
   items: OrderItemResponse[];
   totalPrice: number;
-  status: string;
+  status: OrderStatus;
   paymentId?: string;
   createdAt?: string;
 }
