@@ -113,8 +113,8 @@ export default function OrdersPage() {
                 </div>
               </div>
               <div className="border-t pt-4 space-y-2">
-                {order.items.map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm text-gray-600">
+                {order.items.map((item) => (
+                  <div key={item.productId} className="flex justify-between text-sm text-gray-600">
                     <span>
                       {item.productName} x{item.quantity}
                     </span>

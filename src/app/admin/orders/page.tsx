@@ -8,6 +8,9 @@ import Button from '@/components/ui/Button';
 
 const statusOptions = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED'];
 
+const getPaymentTransactionId = (order: OrderResponse) =>
+  order.items.find((item) => item.paymentTransactionId)?.paymentTransactionId;
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,17 +45,16 @@ export default function AdminOrdersPage() {
   };
 
   const handleRefund = async (order: OrderResponse) => {
-    const paymentTransactionId = order.items.find((item) => item.paymentTransactionId)?.paymentTransactionId;
+    const paymentTransactionId = getPaymentTransactionId(order);
     if (!paymentTransactionId) {
       toast.error("Ödeme işlem numarası bulunamadı.");
       return;
     }
     setRefundingId(order.id);
     try {
-      const itemsTotal = order.items.reduce((sum, item) => sum + item.subtotal, 0);
       const payload: RefundRequest = {
         paymentTransactionId,
-        amount: order.totalPrice ?? itemsTotal
+        amount: order.totalPrice
       };
       await api.post('/payment/refund', payload);
       toast.success("İade işlemi başlatıldı.");

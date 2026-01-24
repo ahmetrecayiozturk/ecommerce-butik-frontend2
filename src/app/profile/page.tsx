@@ -31,8 +31,8 @@ export default function ProfilePage() {
       const response = await api.get<User>('/users/me');
       setProfile(response.data);
       setProfileForm({
-        firstName: response.data.firstName ?? '',
-        lastName: response.data.lastName ?? ''
+        firstName: response.data.firstName,
+        lastName: response.data.lastName
       });
     } catch {
       toast.error("Profil yüklenemedi.");
