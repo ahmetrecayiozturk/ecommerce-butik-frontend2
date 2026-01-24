@@ -51,8 +51,8 @@ export default function OrdersPage() {
     setProcessingId(orderId);
     try {
       const response = await api.post(`/orders/${orderId}/return`);
-      const updatedOrder = response.data ?? null;
-      if (updatedOrder && typeof updatedOrder === 'object' && 'id' in updatedOrder) {
+      const updatedOrder = response.data as OrderResponse | undefined;
+      if (updatedOrder?.id === orderId) {
         setOrders((prev) => prev.map((order) => (order.id === orderId ? updatedOrder : order)));
       } else {
         setOrders((prev) =>

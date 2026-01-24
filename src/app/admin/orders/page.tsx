@@ -53,7 +53,7 @@ export default function AdminOrdersPage() {
       const itemsTotal = order.items.reduce((sum, item) => sum + item.subtotal, 0);
       const payload: RefundRequest = {
         paymentTransactionId,
-        amount: itemsTotal || order.totalPrice
+        amount: itemsTotal > 0 ? itemsTotal : order.totalPrice
       };
       await api.post('/payment/refund', payload);
       toast.success("İade işlemi başlatıldı.");
