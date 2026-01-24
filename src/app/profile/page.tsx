@@ -130,7 +130,7 @@ export default function ProfilePage() {
             onChange={(event) =>
               setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))
             }
-            minLength={6}
+            minLength={8}
             required
           />
           <Button type="submit" variant="outline" isLoading={savingPassword}>

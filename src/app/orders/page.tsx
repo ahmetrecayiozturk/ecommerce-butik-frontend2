@@ -13,6 +13,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -31,10 +32,15 @@ export default function OrdersPage() {
   }, [fetchOrders]);
 
   const handleCancel = async (orderId: number) => {
-    const confirmed = window.confirm("Siparişi iptal etmek istediğinize emin misiniz?");
-    if (!confirmed) {
+    setConfirmingOrderId(orderId);
+  };
+
+  const confirmCancel = async () => {
+    if (!confirmingOrderId) {
       return;
     }
+    const orderId = confirmingOrderId;
+    setConfirmingOrderId(null);
     setProcessingId(orderId);
     try {
       await api.put(`/orders/${orderId}/cancel`);
@@ -130,6 +136,24 @@ export default function OrdersPage() {
           {orders.length === 0 && <div className="text-sm text-gray-500">Henüz sipariş yok.</div>}
         </div>
       </div>
+      {confirmingOrderId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-lg border p-6 w-full max-w-md space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800">Siparişi iptal et</h2>
+            <p className="text-sm text-gray-600">
+              Bu siparişi iptal etmek istediğinize emin misiniz?
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setConfirmingOrderId(null)}>
+                Vazgeç
+              </Button>
+              <Button variant="danger" onClick={confirmCancel} isLoading={processingId !== null}>
+                İptal Et
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
