@@ -60,9 +60,13 @@ export default function CheckoutPage() {
       setPaymentHtml(htmlContent);
       toast.info("Ödeme formu yükleniyor...");
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      const msg = error.response?.data?.message || "Ödeme başlatılamadı.";
+      const message =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      const msg = message || "Ödeme başlatılamadı.";
       toast.error(msg);
       
       if(msg.includes("stock") || msg.includes("empty")) {

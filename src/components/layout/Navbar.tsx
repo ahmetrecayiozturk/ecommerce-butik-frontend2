@@ -36,8 +36,8 @@ const Navbar = () => {
                   <User className="w-5 h-5" />
                   <span>{user?.firstName}</span>
                 </div>
-                {user?.role === 'ADMIN' && (
-                   <Link href="/admin/dashboard" className="text-red-600 font-bold text-sm">ADMIN PANEL</Link>
+                {(user?.role === 'ADMIN' || user?.role === 'ROLE_ADMIN') && (
+                   <Link href="/admin/products" className="text-red-600 font-bold text-sm">ADMIN PANEL</Link>
                 )}
                 <button 
                   onClick={logout} 
