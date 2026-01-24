@@ -42,10 +42,9 @@ export default function AdminOrdersPage() {
   };
 
   const handleRefund = async (order: OrderResponse) => {
-    const paymentTransactionId =
-      order.items.find((item) => item.paymentTransactionId)?.paymentTransactionId ?? order.paymentId;
+    const paymentTransactionId = order.items.find((item) => item.paymentTransactionId)?.paymentTransactionId;
     if (!paymentTransactionId) {
-      toast.error("Ödeme işlemi bulunamadı.");
+      toast.error("Ödeme işlem numarası bulunamadı.");
       return;
     }
     setRefundingId(order.id);
@@ -53,7 +52,7 @@ export default function AdminOrdersPage() {
       const itemsTotal = order.items.reduce((sum, item) => sum + item.subtotal, 0);
       const payload: RefundRequest = {
         paymentTransactionId,
-        amount: itemsTotal > 0 ? itemsTotal : order.totalPrice
+        amount: order.totalPrice ?? itemsTotal
       };
       await api.post('/payment/refund', payload);
       toast.success("İade işlemi başlatıldı.");

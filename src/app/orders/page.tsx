@@ -50,17 +50,12 @@ export default function OrdersPage() {
   const handleReturnRequest = async (orderId: number) => {
     setProcessingId(orderId);
     try {
-      const response = await api.post(`/orders/${orderId}/return`);
-      const updatedOrder = response.data as OrderResponse | undefined;
-      if (updatedOrder?.id === orderId) {
-        setOrders((prev) => prev.map((order) => (order.id === orderId ? updatedOrder : order)));
-      } else {
-        setOrders((prev) =>
-          prev.map((order) =>
-            order.id === orderId ? { ...order, status: 'RETURN_REQUESTED' } : order
-          )
-        );
-      }
+      await api.post(`/orders/${orderId}/return`);
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId ? { ...order, status: 'RETURN_REQUESTED' } : order
+        )
+      );
       toast.success("İade talebi oluşturuldu.");
     } catch {
       toast.error("İade talebi oluşturulamadı.");
