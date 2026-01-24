@@ -31,15 +31,17 @@ export default function AdminProductsPage() {
       ]);
       setProducts(productsResponse.data.products);
       setCategories(categoriesResponse.data);
-      if (categoriesResponse.data.length > 0 && !form.categoryId) {
-        setForm((prev) => ({ ...prev, categoryId: categoriesResponse.data[0].id }));
+      if (categoriesResponse.data.length > 0) {
+        setForm((prev) =>
+          prev.categoryId === 0 ? { ...prev, categoryId: categoriesResponse.data[0].id } : prev
+        );
       }
     } catch {
       toast.error("Ürünler yüklenemedi.");
     } finally {
       setLoading(false);
     }
-  }, [form.categoryId]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -164,7 +166,7 @@ export default function AdminProductsPage() {
             <label className="text-sm font-medium text-gray-700">Görsel URL</label>
             <input
               className="mt-1 w-full border rounded-lg px-3 py-2"
-              value={form.imageUrl ?? ''}
+              value={form.imageUrl || ''}
               onChange={(event) => setForm((prev) => ({ ...prev, imageUrl: event.target.value }))}
             />
           </div>
@@ -172,7 +174,7 @@ export default function AdminProductsPage() {
             <label className="text-sm font-medium text-gray-700">Açıklama</label>
             <input
               className="mt-1 w-full border rounded-lg px-3 py-2"
-              value={form.description ?? ''}
+              value={form.description || ''}
               onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
             />
           </div>

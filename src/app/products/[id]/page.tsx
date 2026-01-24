@@ -51,9 +51,12 @@ export default function ProductDetailPage() {
         const response = await api.get(`/products/${id}/reviews`, {
           params: { page: 0, size: 20 }
         });
-        setReviews(response.data);
-      } catch {
-        console.error("Yorumlar yüklenemedi");
+        const reviewData = Array.isArray(response.data)
+          ? response.data
+          : (response.data?.reviews as ReviewResponse[]) || [];
+        setReviews(reviewData);
+      } catch (error) {
+        console.error("Yorumlar yüklenemedi", error);
       } finally {
         setReviewsLoading(false);
       }
@@ -106,7 +109,10 @@ export default function ProductDetailPage() {
         api.get(`/products/${id}/reviews`, { params: { page: 0, size: 20 } })
       ]);
       setProduct(productResponse.data);
-      setReviews(reviewsResponse.data);
+      const reviewData = Array.isArray(reviewsResponse.data)
+        ? reviewsResponse.data
+        : (reviewsResponse.data?.reviews as ReviewResponse[]) || [];
+      setReviews(reviewData);
     } catch {
       toast.error("Değerlendirme gönderilemedi.");
     } finally {
@@ -148,7 +154,7 @@ export default function ProductDetailPage() {
                       <span className="font-bold text-gray-700 ml-1">{product.averageRating?.toFixed(1) || "New"}</span>
                   </div>
                   <span className="text-gray-400">|</span>
-                  <span className="text-gray-500">{product.reviewCount ?? 0} Değerlendirme</span>
+                  <span className="text-gray-500">{product?.reviewCount ?? 0} Değerlendirme</span>
               </div>
 
               <p className="text-gray-600 leading-relaxed mb-8">
@@ -213,7 +219,7 @@ export default function ProductDetailPage() {
                   <div className="flex items-center mb-2">
                     {Array.from({ length: 5 }, (_, index) => (
                       <Star
-                        key={`${review.id}-star-${index}`}
+                        key={index}
                         className={`w-4 h-4 ${index < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-200'}`}
                       />
                     ))}
@@ -247,7 +253,7 @@ export default function ProductDetailPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Yorum</label>
                   <textarea
-                    value={reviewForm.comment ?? ''}
+                    value={reviewForm.comment}
                     onChange={(event) =>
                       setReviewForm((prev) => ({ ...prev, comment: event.target.value }))
                     }

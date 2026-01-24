@@ -48,7 +48,7 @@ export default function AdminOrdersPage() {
       <div className="bg-white rounded-2xl border shadow-sm p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Sipariş Yönetimi</h1>
         <div className="space-y-4">
-              {orders.map((order) => (
+          {orders.map((order) => (
             <div key={order.id} className="border rounded-xl p-4">
               <div className="flex flex-wrap justify-between gap-4">
                 <div>
@@ -78,7 +78,7 @@ export default function AdminOrdersPage() {
               </div>
               <div className="mt-4 border-t pt-4 space-y-2">
                 {order.items.map((item, index) => (
-                  <div key={`${order.id}-${item.productId}-${index}`} className="flex justify-between text-sm text-gray-600">
+                  <div key={index} className="flex justify-between text-sm text-gray-600">
                     <span>{item.productName} x{item.quantity}</span>
                     <span>
                       {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.subtotal)}
