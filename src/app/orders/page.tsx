@@ -1,19 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/services/api';
-import { OrderListResponse, OrderResponse, OrderStatus } from '@/types';
+import OrderService from '@/services/order.service';
+import ReturnService from '@/services/return.service';
+import { OrderListResponse, OrderResponse, OrderStatus, ReturnRequest } from '@/types';
 import Button from '@/components/ui/Button';
 import { toast } from 'react-toastify';
+import { useSearchParams } from 'next/navigation';
+import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 
-const cancellableStatuses: OrderStatus[] = ['PENDING', 'PROCESSING'];
+const cancellableStatuses: OrderStatus[] = ['PENDING'];
 const returnableStatuses: OrderStatus[] = ['DELIVERED'];
+const cargoFirmOptions = ['Yurtiçi', 'Aras', 'MNG', 'PTT'];
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
+  const [returnModalOrder, setReturnModalOrder] = useState<OrderResponse | null>(null);
+  const [returnForm, setReturnForm] = useState({
+    cargoFirm: cargoFirmOptions[0],
+    trackingCode: '',
+    reason: ''
+  });
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const { refreshCart } = useCart();
+  const hasShownPaymentSuccess = useRef(false);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -31,6 +47,16 @@ export default function OrdersPage() {
     fetchOrders();
   }, [fetchOrders]);
 
+  const paymentSuccess = useMemo(() => searchParams.get('payment') === 'success', [searchParams]);
+
+  useEffect(() => {
+    if (paymentSuccess && !hasShownPaymentSuccess.current) {
+      toast.success("Ödeme Başarılı");
+      refreshCart();
+      hasShownPaymentSuccess.current = true;
+    }
+  }, [paymentSuccess, refreshCart]);
+
   const handleCancel = async (orderId: number) => {
     setConfirmingOrderId(orderId);
   };
@@ -43,7 +69,7 @@ export default function OrdersPage() {
     setConfirmingOrderId(null);
     setProcessingId(orderId);
     try {
-      await api.put(`/orders/${orderId}/cancel`);
+      await OrderService.cancel(orderId);
       toast.success("Sipariş iptal edildi.");
       fetchOrders();
     } catch {
@@ -53,16 +79,41 @@ export default function OrdersPage() {
     }
   };
 
-  const handleReturnRequest = async (orderId: number) => {
-    setProcessingId(orderId);
+  const openReturnModal = (order: OrderResponse) => {
+    setReturnForm({
+      cargoFirm: cargoFirmOptions[0],
+      trackingCode: '',
+      reason: ''
+    });
+    setReturnModalOrder(order);
+  };
+
+  const submitReturnRequest = async () => {
+    if (!returnModalOrder) {
+      return;
+    }
+    if (!user?.id) {
+      toast.error("Kullanıcı bilgisi bulunamadı.");
+      return;
+    }
+    if (!returnForm.trackingCode.trim() || !returnForm.reason.trim()) {
+      toast.error("Lütfen tüm alanları doldurun.");
+      return;
+    }
+    setProcessingId(returnModalOrder.id);
     try {
-      await api.post(`/orders/${orderId}/return`);
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === orderId ? { ...order, status: 'RETURN_REQUESTED' } : order
-        )
-      );
+      const payload: ReturnRequest = {
+        orderId: returnModalOrder.id,
+        userId: user.id,
+        cargoFirm: returnForm.cargoFirm,
+        trackingCode: returnForm.trackingCode.trim(),
+        reason: returnForm.reason.trim(),
+        status: 'PENDING'
+      };
+      await ReturnService.create(payload);
       toast.success("İade talebi oluşturuldu.");
+      setReturnModalOrder(null);
+      fetchOrders();
     } catch {
       toast.error("İade talebi oluşturulamadı.");
     } finally {
@@ -79,6 +130,11 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
+      {paymentSuccess && (
+        <div className="bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
+          Ödeme Başarılı
+        </div>
+      )}
       <div className="bg-white rounded-2xl border shadow-sm p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Siparişlerim</h1>
         <div className="space-y-4">
@@ -110,7 +166,7 @@ export default function OrdersPage() {
                   {returnableStatuses.includes(order.status) && (
                     <Button
                       variant="outline"
-                      onClick={() => handleReturnRequest(order.id)}
+                      onClick={() => openReturnModal(order)}
                       isLoading={processingId === order.id}
                     >
                       İade Talep Et
@@ -130,17 +186,17 @@ export default function OrdersPage() {
               </div>
               <div className="text-sm text-gray-600 space-y-1">
                 <div>
-                  <span className="font-medium text-gray-700">Shipping Address:</span>{' '}
+                  <span className="font-medium text-gray-700">Teslimat Adresi:</span>{' '}
                   {order.shippingAddress || '—'}
                 </div>
                 {order.status === 'SHIPPED' && (
                   <>
                     <div>
-                      <span className="font-medium text-gray-700">Cargo Firm:</span>{' '}
+                      <span className="font-medium text-gray-700">Kargo Firması:</span>{' '}
                       {order.cargoFirm || '—'}
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Tracking Number:</span>{' '}
+                      <span className="font-medium text-gray-700">Takip Numarası:</span>{' '}
                       {order.trackingNumber || '—'}
                     </div>
                   </>
@@ -167,6 +223,62 @@ export default function OrdersPage() {
               </Button>
               <Button variant="danger" onClick={confirmCancel} isLoading={processingId !== null}>
                 İptal Et
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {returnModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-lg border p-6 w-full max-w-md space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800">İade Talebi Oluştur</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Kargo Firması</label>
+                <select
+                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
+                  value={returnForm.cargoFirm}
+                  onChange={(event) =>
+                    setReturnForm((prev) => ({ ...prev, cargoFirm: event.target.value }))
+                  }
+                >
+                  {cargoFirmOptions.map((firm) => (
+                    <option key={firm} value={firm}>
+                      {firm}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Takip Kodu</label>
+                <input
+                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
+                  value={returnForm.trackingCode}
+                  onChange={(event) =>
+                    setReturnForm((prev) => ({ ...prev, trackingCode: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">İade Sebebi</label>
+                <textarea
+                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
+                  rows={3}
+                  value={returnForm.reason}
+                  onChange={(event) =>
+                    setReturnForm((prev) => ({ ...prev, reason: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setReturnModalOrder(null)}>
+                Vazgeç
+              </Button>
+              <Button onClick={submitReturnRequest} isLoading={processingId === returnModalOrder.id}>
+                Gönder
               </Button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext"; // AuthContext'in yolunu kontrol et
 import api from "@/services/api"; // Eğer api servisin utils içindeyse yolu düzelt (örn: '@/utils/api')
 
@@ -35,7 +35,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(false);
 
   // Sepeti Backend'den Çek
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     if (!isAuthenticated) {
       setCart([]);
       return;
@@ -53,12 +53,12 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   // Kullanıcı giriş yaptığında sepeti çek
   useEffect(() => {
     fetchCart();
-  }, [isAuthenticated]);
+  }, [fetchCart]);
 
   // Ürün Ekle
   const addToCart = async (productId: number, quantity: number) => {
