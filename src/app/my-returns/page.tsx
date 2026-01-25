@@ -19,6 +19,11 @@ const statusClasses: Record<string, string> = {
   REFUNDED: "bg-green-100 text-green-700",
   REJECTED: "bg-red-100 text-red-700",
 };
+const defaultStatusClass = "bg-gray-100 text-gray-600";
+const defaultStatusValue = "PENDING";
+
+const getReturnKey = (item: ReturnRequest, index: number) =>
+  item.id ?? `${item.orderId}-${item.userId}-${item.createdAt ?? index}`;
 
 export default function MyReturnsPage() {
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
@@ -61,15 +66,15 @@ export default function MyReturnsPage() {
           İade Taleplerim
         </h1>
         <div className="space-y-4">
-          {sortedReturns.map((item) => {
-            const status = item.status ?? "PENDING";
+          {sortedReturns.map((item, index) => {
+            const status = item.status || defaultStatusValue;
             const trackingUrl = getTrackingUrl(
               item.cargoFirm,
               item.trackingCode,
             );
             return (
               <div
-                key={item.id ?? `${item.orderId}-${item.userId}`}
+                key={getReturnKey(item, index)}
                 className="border rounded-xl p-4 space-y-3"
               >
                 <div className="flex flex-wrap justify-between gap-4">
@@ -84,7 +89,7 @@ export default function MyReturnsPage() {
                     )}
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status] ?? "bg-gray-100 text-gray-600"}`}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status] ?? defaultStatusClass}`}
                   >
                     {statusLabels[status] ?? status}
                   </span>

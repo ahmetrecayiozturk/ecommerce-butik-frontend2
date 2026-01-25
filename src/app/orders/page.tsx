@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "@/services/api";
 import OrderService from "@/services/order.service";
@@ -21,6 +22,7 @@ const cancellableStatuses: OrderStatus[] = ["PENDING"];
 const returnableStatuses: OrderStatus[] = ["DELIVERED"];
 const trackableStatuses: OrderStatus[] = ["SHIPPED", "DELIVERED"];
 const cargoFirmOptions = ["Yurtiçi", "Aras", "MNG", "PTT"];
+const placeholderValue = "—";
 
 function OrdersContent() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -209,12 +211,12 @@ function OrdersContent() {
                           <Button variant="outline" disabled>
                             İade Talep Et
                           </Button>
-                          <a
+                          <Link
                             href="/my-returns"
                             className="text-sm font-semibold text-blue-600 hover:underline"
                           >
                             İade Talebiniz Mevcut
-                          </a>
+                          </Link>
                         </>
                       ) : (
                         <Button
@@ -245,7 +247,7 @@ function OrdersContent() {
                     <span className="font-medium text-gray-700">
                       Teslimat Adresi:
                     </span>{" "}
-                    {order.shippingAddress || "—"}
+                    {order.shippingAddress || placeholderValue}
                   </div>
                   {(trackableStatuses.includes(order.status) ||
                     hasTrackingNumber) && (
@@ -254,7 +256,7 @@ function OrdersContent() {
                         <span className="font-medium text-gray-700">
                           Kargo Firması:
                         </span>{" "}
-                        {order.cargoFirm || "—"}
+                        {order.cargoFirm || placeholderValue}
                       </div>
                       <div>
                         <span className="font-medium text-gray-700">
@@ -270,7 +272,7 @@ function OrdersContent() {
                               🚚 Kargo Takip
                             </a>
                           ) : (
-                            "—"
+                            placeholderValue
                           )}
                         </div>
                       </>
