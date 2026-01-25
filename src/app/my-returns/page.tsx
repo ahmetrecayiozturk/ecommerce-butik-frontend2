@@ -2,22 +2,32 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ReturnService from "@/services/return.service";
-import { ReturnRequest, ReturnStatus } from "@/types";
+import { ReturnRequest } from "@/types";
 import { toast } from "react-toastify";
-import Button from "@/components/ui/Button";
 import { getTrackingUrl } from "@/utils/cargoTracking";
 
-const statusActions: ReturnStatus[] = ["RECEIVED", "REFUNDED"];
+const statusLabels: Record<string, string> = {
+  PENDING: "İade Talebiniz Alındı",
+  RECEIVED: "İadeniz İnceleniyor",
+  REFUNDED: "İadeniz Kabul Edilmiştir",
+  REJECTED: "İade Reddedildi",
+};
 
-export default function AdminReturnsPage() {
+const statusClasses: Record<string, string> = {
+  PENDING: "bg-orange-100 text-orange-700",
+  RECEIVED: "bg-blue-100 text-blue-700",
+  REFUNDED: "bg-green-100 text-green-700",
+  REJECTED: "bg-red-100 text-red-700",
+};
+
+export default function MyReturnsPage() {
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState<number | null>(null);
 
   const fetchReturns = async () => {
     try {
       setLoading(true);
-      const response = await ReturnService.getAll();
+      const response = await ReturnService.getMyReturns();
       setReturns(response.data);
     } catch {
       toast.error("İade talepleri yüklenemedi.");
@@ -29,27 +39,6 @@ export default function AdminReturnsPage() {
   useEffect(() => {
     fetchReturns();
   }, []);
-
-  const handleStatusUpdate = async (
-    item: ReturnRequest,
-    status: ReturnStatus,
-  ) => {
-    if (!item.id) {
-      return;
-    }
-    setProcessingId(item.id);
-    try {
-      const response = await ReturnService.updateStatus(item.id, status);
-      toast.success("İade durumu güncellendi.");
-      setReturns((prev) =>
-        prev.map((entry) => (entry.id === item.id ? response.data : entry)),
-      );
-    } catch {
-      toast.error("İade durumu güncellenemedi.");
-    } finally {
-      setProcessingId(null);
-    }
-  };
 
   const sortedReturns = useMemo(
     () =>
@@ -69,10 +58,11 @@ export default function AdminReturnsPage() {
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border shadow-sm p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">
-          İade Talepleri
+          İade Taleplerim
         </h1>
         <div className="space-y-4">
           {sortedReturns.map((item) => {
+            const status = item.status ?? "PENDING";
             const trackingUrl = getTrackingUrl(
               item.cargoFirm,
               item.trackingCode,
@@ -87,31 +77,17 @@ export default function AdminReturnsPage() {
                     <div className="text-sm text-gray-500">
                       Sipariş #{item.orderId}
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Kullanıcı #{item.userId}
-                    </div>
                     {item.createdAt && (
                       <div className="text-xs text-gray-400">
                         {new Date(item.createdAt).toLocaleString("tr-TR")}
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                      {item.status ?? "PENDING"}
-                    </span>
-                    {statusActions.map((status) => (
-                      <Button
-                        key={status}
-                        className="text-sm"
-                        onClick={() => handleStatusUpdate(item, status)}
-                        isLoading={processingId === item.id}
-                        disabled={item.status === status || !item.id}
-                      >
-                        {status === "RECEIVED" ? "Teslim Al" : "Onayla"}
-                      </Button>
-                    ))}
-                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClasses[status] ?? "bg-gray-100 text-gray-600"}`}
+                  >
+                    {statusLabels[status] ?? status}
+                  </span>
                 </div>
                 <div className="text-sm text-gray-600 space-y-1">
                   <div>

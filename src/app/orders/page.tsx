@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "@/services/api";
 import OrderService from "@/services/order.service";
 import ReturnService from "@/services/return.service";
@@ -22,7 +22,7 @@ const returnableStatuses: OrderStatus[] = ["DELIVERED"];
 const trackableStatuses: OrderStatus[] = ["SHIPPED", "DELIVERED"];
 const cargoFirmOptions = ["Yurtiçi", "Aras", "MNG", "PTT"];
 
-export default function OrdersPage() {
+function OrdersContent() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
@@ -31,6 +31,9 @@ export default function OrdersPage() {
   );
   const [returnModalOrder, setReturnModalOrder] =
     useState<OrderResponse | null>(null);
+  const [returnOrderIds, setReturnOrderIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [returnForm, setReturnForm] = useState({
     cargoFirm: cargoFirmOptions[0],
     trackingCode: "",
@@ -44,10 +47,18 @@ export default function OrdersPage() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get<OrderListResponse>("/orders", {
+      const ordersResponse = await api.get<OrderListResponse>("/orders", {
         params: { page: 0, size: 50 },
       });
-      setOrders(response.data.orders);
+      setOrders(ordersResponse.data.orders);
+      try {
+        const returnsResponse = await ReturnService.getMyReturns();
+        setReturnOrderIds(
+          new Set(returnsResponse.data.map((item) => item.orderId)),
+        );
+      } catch {
+        setReturnOrderIds(new Set());
+      }
     } catch {
       toast.error("Siparişler yüklenemedi.");
     } finally {
@@ -161,6 +172,8 @@ export default function OrdersPage() {
               order.cargoFirm,
               order.trackingNumber,
             );
+            const hasReturnRequest = returnOrderIds.has(order.id);
+            const hasTrackingNumber = Boolean(order.trackingNumber);
             return (
               <div key={order.id} className="border rounded-xl p-4 space-y-4">
                 <div className="flex flex-wrap justify-between gap-4">
@@ -190,15 +203,28 @@ export default function OrdersPage() {
                         İptal Et
                       </Button>
                     )}
-                    {returnableStatuses.includes(order.status) && (
-                      <Button
-                        variant="outline"
-                        onClick={() => openReturnModal(order)}
-                        isLoading={processingId === order.id}
-                      >
-                        İade Talep Et
-                      </Button>
-                    )}
+                    {returnableStatuses.includes(order.status) &&
+                      (hasReturnRequest ? (
+                        <>
+                          <Button variant="outline" disabled>
+                            İade Talep Et
+                          </Button>
+                          <a
+                            href="/my-returns"
+                            className="text-sm font-semibold text-blue-600 hover:underline"
+                          >
+                            İade Talebiniz Mevcut
+                          </a>
+                        </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          onClick={() => openReturnModal(order)}
+                          isLoading={processingId === order.id}
+                        >
+                          İade Talep Et
+                        </Button>
+                      ))}
                   </div>
                 </div>
                 <div className="border-t pt-4 space-y-2">
@@ -221,7 +247,8 @@ export default function OrdersPage() {
                     </span>{" "}
                     {order.shippingAddress || "—"}
                   </div>
-                  {trackableStatuses.includes(order.status) && (
+                  {(trackableStatuses.includes(order.status) ||
+                    hasTrackingNumber) && (
                     <>
                       <div>
                         <span className="font-medium text-gray-700">
@@ -233,21 +260,21 @@ export default function OrdersPage() {
                         <span className="font-medium text-gray-700">
                           Takip Numarası:
                         </span>{" "}
-                        {trackingUrl ? (
-                          <a
-                            href={trackingUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            🚚 Kargo Takip
-                          </a>
-                        ) : (
-                          order.trackingNumber || "—"
-                        )}
-                      </div>
-                    </>
-                  )}
+                          {trackingUrl ? (
+                            <a
+                              href={trackingUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              🚚 Kargo Takip
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </div>
+                      </>
+                    )}
                 </div>
                 {order.paymentId && (
                   <div className="text-xs text-gray-400">
@@ -369,5 +396,13 @@ export default function OrdersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20">Yükleniyor...</div>}>
+      <OrdersContent />
+    </Suspense>
   );
 }
