@@ -1,33 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import ReturnService from '@/services/return.service';
-import { ReturnRequest, ReturnStatus } from '@/types';
-import { toast } from 'react-toastify';
-import Button from '@/components/ui/Button';
+import { useEffect, useMemo, useState } from "react";
+import ReturnService from "@/services/return.service";
+import { ReturnRequest, ReturnStatus } from "@/types";
+import { toast } from "react-toastify";
+import Button from "@/components/ui/Button";
+import { getTrackingUrl } from "@/utils/cargoTracking";
 
-const statusActions: ReturnStatus[] = ['RECEIVED', 'REFUNDED'];
-
-const getTrackingUrl = (cargoFirm?: string, trackingCode?: string) => {
-  if (!cargoFirm || !trackingCode) {
-    return null;
-  }
-  const code = encodeURIComponent(trackingCode);
-  const normalizedFirm = cargoFirm.toLocaleLowerCase('tr-TR');
-  switch (normalizedFirm) {
-    case 'yurtiçi':
-    case 'yurtici':
-      return `https://selfservis.yurticikargo.com/reports/SSW/ShipmentDetail.aspx?docId=${code}`;
-    case 'aras':
-      return `https://kargotakip.araskargo.com.tr/mainpage.aspx?code=${code}`;
-    case 'mng':
-      return `https://kargotakip.mngkargo.com.tr/?takipNo=${code}`;
-    case 'ptt':
-      return `https://gonderitakip.ptt.gov.tr/Track/Verify?q=${code}`;
-    default:
-      return null;
-  }
-};
+const statusActions: ReturnStatus[] = ["RECEIVED", "REFUNDED"];
 
 export default function AdminReturnsPage() {
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
@@ -50,7 +30,10 @@ export default function AdminReturnsPage() {
     fetchReturns();
   }, []);
 
-  const handleStatusUpdate = async (item: ReturnRequest, status: ReturnStatus) => {
+  const handleStatusUpdate = async (
+    item: ReturnRequest,
+    status: ReturnStatus,
+  ) => {
     if (!item.id) {
       return;
     }
@@ -58,7 +41,9 @@ export default function AdminReturnsPage() {
     try {
       const response = await ReturnService.updateStatus(item.id, status);
       toast.success("İade durumu güncellendi.");
-      setReturns((prev) => prev.map((entry) => (entry.id === item.id ? response.data : entry)));
+      setReturns((prev) =>
+        prev.map((entry) => (entry.id === item.id ? response.data : entry)),
+      );
     } catch {
       toast.error("İade durumu güncellenemedi.");
     } finally {
@@ -73,7 +58,7 @@ export default function AdminReturnsPage() {
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       }),
-    [returns]
+    [returns],
   );
 
   if (loading) {
@@ -83,25 +68,37 @@ export default function AdminReturnsPage() {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border shadow-sm p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">İade Talepleri</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">
+          İade Talepleri
+        </h1>
         <div className="space-y-4">
           {sortedReturns.map((item) => {
-            const trackingUrl = getTrackingUrl(item.cargoFirm, item.trackingCode);
+            const trackingUrl = getTrackingUrl(
+              item.cargoFirm,
+              item.trackingCode,
+            );
             return (
-              <div key={item.id ?? `${item.orderId}-${item.userId}`} className="border rounded-xl p-4 space-y-3">
+              <div
+                key={item.id ?? `${item.orderId}-${item.userId}`}
+                className="border rounded-xl p-4 space-y-3"
+              >
                 <div className="flex flex-wrap justify-between gap-4">
                   <div>
-                    <div className="text-sm text-gray-500">Sipariş #{item.orderId}</div>
-                    <div className="text-sm text-gray-500">Kullanıcı #{item.userId}</div>
+                    <div className="text-sm text-gray-500">
+                      Sipariş #{item.orderId}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Kullanıcı #{item.userId}
+                    </div>
                     {item.createdAt && (
                       <div className="text-xs text-gray-400">
-                        {new Date(item.createdAt).toLocaleString('tr-TR')}
+                        {new Date(item.createdAt).toLocaleString("tr-TR")}
                       </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                      {item.status ?? 'PENDING'}
+                      {item.status ?? "PENDING"}
                     </span>
                     {statusActions.map((status) => (
                       <Button
@@ -111,18 +108,24 @@ export default function AdminReturnsPage() {
                         isLoading={processingId === item.id}
                         disabled={item.status === status || !item.id}
                       >
-                        {status === 'RECEIVED' ? 'Teslim Alındı' : 'İade Edildi'}
+                        {status === "RECEIVED"
+                          ? "Teslim Alındı"
+                          : "İade Edildi"}
                       </Button>
                     ))}
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 space-y-1">
                   <div>
-                    <span className="font-medium text-gray-700">Kargo Firması:</span>{' '}
-                    {item.cargoFirm || '—'}
+                    <span className="font-medium text-gray-700">
+                      Kargo Firması:
+                    </span>{" "}
+                    {item.cargoFirm || "—"}
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Takip Kodu:</span>{' '}
+                    <span className="font-medium text-gray-700">
+                      Takip Kodu:
+                    </span>{" "}
                     {trackingUrl ? (
                       <a
                         href={trackingUrl}
@@ -130,14 +133,15 @@ export default function AdminReturnsPage() {
                         rel="noreferrer"
                         className="text-blue-600 hover:underline"
                       >
-                        {item.trackingCode}
+                        🔍 Kargoyu Sorgula
                       </a>
                     ) : (
-                      item.trackingCode || '—'
+                      item.trackingCode || "—"
                     )}
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Sebep:</span> {item.reason || '—'}
+                    <span className="font-medium text-gray-700">Sebep:</span>{" "}
+                    {item.reason || "—"}
                   </div>
                 </div>
               </div>
