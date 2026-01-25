@@ -15,6 +15,8 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refundingId, setRefundingId] = useState<number | null>(null);
+  const [shipmentDetails, setShipmentDetails] = useState<Record<number, { cargoFirm: string; trackingNumber: string }>>({});
+  const [statusSelections, setStatusSelections] = useState<Record<number, string>>({});
 
   const fetchOrders = async () => {
     try {
@@ -32,13 +34,25 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }, []);
 
-  const handleStatusChange = async (orderId: number, status: string) => {
+  const handleStatusChange = async (order: OrderResponse, status: string) => {
     try {
-      const response = await api.put(`/admin/orders/${orderId}/status`, null, {
-        params: { status }
+      const details = shipmentDetails[order.id];
+      const cargoFirm = (details?.cargoFirm ?? order.cargoFirm ?? '').trim();
+      const trackingNumber = (details?.trackingNumber ?? order.trackingNumber ?? '').trim();
+      const response = await api.put(`/admin/orders/${order.id}/status`, null, {
+        params: {
+          status,
+          ...(status === 'SHIPPED'
+            ? {
+                cargoFirm,
+                trackingNumber
+              }
+            : {})
+        }
       });
       toast.success("Sipariş güncellendi.");
-      setOrders((prev) => prev.map((order) => (order.id === orderId ? response.data : order)));
+      setOrders((prev) => prev.map((item) => (item.id === order.id ? response.data : item)));
+      setStatusSelections((prev) => ({ ...prev, [order.id]: status }));
     } catch {
       toast.error("Sipariş güncellenemedi.");
     }
@@ -97,8 +111,11 @@ export default function AdminOrdersPage() {
                 <div className="flex items-center gap-2">
                   <select
                     className="border rounded-lg px-3 py-2 text-sm"
-                    value={order.status}
-                    onChange={(event) => handleStatusChange(order.id, event.target.value)}
+                    value={statusSelections[order.id] ?? order.status}
+                    onChange={(event) => {
+                      const nextStatus = event.target.value;
+                      setStatusSelections((prev) => ({ ...prev, [order.id]: nextStatus }));
+                    }}
                   >
                     {statusOptions.map((status) => (
                       <option key={status} value={status}>
@@ -106,6 +123,12 @@ export default function AdminOrdersPage() {
                       </option>
                     ))}
                   </select>
+                  <Button
+                    onClick={() => handleStatusChange(order, statusSelections[order.id] ?? order.status)}
+                    className="text-sm"
+                  >
+                    Update
+                  </Button>
                   <Button
                     variant="danger"
                     onClick={() => handleRefund(order)}
@@ -116,6 +139,48 @@ export default function AdminOrdersPage() {
                   </Button>
                 </div>
               </div>
+              {(statusSelections[order.id] ?? order.status) === 'SHIPPED' && (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500" htmlFor={`cargoFirm-${order.id}`}>
+                      Cargo Firm
+                    </label>
+                    <input
+                      id={`cargoFirm-${order.id}`}
+                      className="border rounded-lg px-3 py-2 text-sm"
+                      value={shipmentDetails[order.id]?.cargoFirm ?? order.cargoFirm ?? ''}
+                      onChange={(event) =>
+                        setShipmentDetails((prev) => ({
+                          ...prev,
+                          [order.id]: {
+                            cargoFirm: event.target.value,
+                            trackingNumber: prev[order.id]?.trackingNumber ?? order.trackingNumber ?? ''
+                          }
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500" htmlFor={`trackingNumber-${order.id}`}>
+                      Tracking Number
+                    </label>
+                    <input
+                      id={`trackingNumber-${order.id}`}
+                      className="border rounded-lg px-3 py-2 text-sm"
+                      value={shipmentDetails[order.id]?.trackingNumber ?? order.trackingNumber ?? ''}
+                      onChange={(event) =>
+                        setShipmentDetails((prev) => ({
+                          ...prev,
+                          [order.id]: {
+                            cargoFirm: prev[order.id]?.cargoFirm ?? order.cargoFirm ?? '',
+                            trackingNumber: event.target.value
+                          }
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              )}
               <div className="mt-4 border-t pt-4 space-y-2">
                 {order.items.map((item, index) => (
                   <div key={index} className="flex justify-between text-sm text-gray-600">

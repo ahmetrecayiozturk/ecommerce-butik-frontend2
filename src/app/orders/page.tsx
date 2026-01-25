@@ -128,6 +128,24 @@ export default function OrdersPage() {
                   </div>
                 ))}
               </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <div>
+                  <span className="font-medium text-gray-700">Shipping Address:</span>{' '}
+                  {order.shippingAddress || '—'}
+                </div>
+                {order.status === 'SHIPPED' && (
+                  <>
+                    <div>
+                      <span className="font-medium text-gray-700">Cargo Firm:</span>{' '}
+                      {order.cargoFirm || '—'}
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Tracking Number:</span>{' '}
+                      {order.trackingNumber || '—'}
+                    </div>
+                  </>
+                )}
+              </div>
               {order.paymentId && (
                 <div className="text-xs text-gray-400">Ödeme ID: {order.paymentId}</div>
               )}

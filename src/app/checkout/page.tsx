@@ -46,14 +46,22 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       // 1. ADIM: Sepeti Siparişe Dönüştür
-      const orderRes = await api.post('/orders');
+      const shippingAddress = typeof window !== 'undefined'
+        ? localStorage.getItem('shippingAddress')?.trim()
+        : '';
+      if (!shippingAddress) {
+        toast.error("Lütfen teslimat adresi ekleyin.");
+        router.push('/cart');
+        return;
+      }
+      const orderRes = await api.post('/orders', { shippingAddress });
       const orderId = orderRes.data.id;
       
       console.log("Sipariş oluşturuldu, ID:", orderId);
 
       // 2. ADIM: Ödemeyi Başlat (Iyzico Formunu İste)
       const paymentRes = await api.post('/payment/initiate', { orderId });
-      
+
       // Backend'den gelen HTML form verisi
       const htmlContent = paymentRes.data.checkoutFormContent;
       
@@ -101,8 +109,8 @@ export default function CheckoutPage() {
                 <span>Secure Payment via Iyzico</span>
             </div>
 
-            <Button 
-                onClick={handlePaymentProcess} 
+            <Button
+                onClick={handlePaymentProcess}
                 className="w-full md:w-1/2 py-4 text-lg mx-auto"
                 isLoading={loading}
             >
