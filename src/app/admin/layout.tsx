@@ -7,7 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 const links = [
   { href: '/admin/products', label: 'Ürünler' },
   { href: '/admin/orders', label: 'Siparişler' },
-  { href: '/admin/categories', label: 'Kategoriler' }
+  { href: '/admin/categories', label: 'Kategoriler' },
+  { href: '/admin/returns', label: 'İadeler' }
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

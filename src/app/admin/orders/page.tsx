@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import Button from '@/components/ui/Button';
 
 const statusOptions = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED'];
+const cargoFirmOptions = ['Yurtiçi', 'Aras', 'MNG', 'PTT'];
 
 const getPaymentTransactionId = (order: OrderResponse) =>
   order.items.find((item) => item.paymentTransactionId)?.paymentTransactionId;
@@ -127,7 +128,7 @@ export default function AdminOrdersPage() {
                     onClick={() => handleStatusChange(order, statusSelections[order.id] ?? order.status)}
                     className="text-sm"
                   >
-                    Update
+                    Güncelle
                   </Button>
                   <Button
                     variant="danger"
@@ -135,7 +136,7 @@ export default function AdminOrdersPage() {
                     isLoading={refundingId === order.id}
                     className="text-sm"
                   >
-                    Refund
+                    İade Başlat
                   </Button>
                 </div>
               </div>
@@ -143,9 +144,9 @@ export default function AdminOrdersPage() {
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-gray-500" htmlFor={`cargoFirm-${order.id}`}>
-                      Cargo Firm
+                      Kargo Firması
                     </label>
-                    <input
+                    <select
                       id={`cargoFirm-${order.id}`}
                       className="border rounded-lg px-3 py-2 text-sm"
                       value={shipmentDetails[order.id]?.cargoFirm ?? order.cargoFirm ?? ''}
@@ -158,11 +159,18 @@ export default function AdminOrdersPage() {
                           }
                         }))
                       }
-                    />
+                    >
+                      <option value="">Seçiniz</option>
+                      {cargoFirmOptions.map((firm) => (
+                        <option key={firm} value={firm}>
+                          {firm}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-gray-500" htmlFor={`trackingNumber-${order.id}`}>
-                      Tracking Number
+                      Takip Numarası
                     </label>
                     <input
                       id={`trackingNumber-${order.id}`}

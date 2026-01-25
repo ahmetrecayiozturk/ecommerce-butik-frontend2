@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
@@ -52,7 +53,7 @@ export default function CartPage() {
 
       await api.put(`/cart/items/${productId}`, { quantity: newQuantity });
       fetchCart(); // Backend'den güncel fiyatları çek
-    } catch (error) {
+    } catch {
       toast.error("Miktar güncellenemedi");
     }
   };
@@ -62,7 +63,7 @@ export default function CartPage() {
       await api.delete(`/cart/items/${productId}`);
       toast.success("Ürün sepetten silindi");
       fetchCart();
-    } catch (error) {
+    } catch {
       toast.error("Silme işlemi başarısız");
     }
   };
@@ -175,7 +176,7 @@ export default function CartPage() {
 
             <div className="mb-4 space-y-2">
               <label htmlFor="shippingAddress" className="text-sm font-medium text-gray-700">
-                Shipping Address
+                Teslimat Adresi
               </label>
               <textarea
                 id="shippingAddress"
