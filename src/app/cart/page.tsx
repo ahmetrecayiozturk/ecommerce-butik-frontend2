@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import api from '@/services/api';
 import { Cart } from '@/types';
 import Button from '@/components/ui/Button';
-import Link from 'next/link';
 import Image from 'next/image';
 import { Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -13,6 +12,7 @@ import { useRouter } from 'next/navigation';
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shippingAddress, setShippingAddress] = useState('');
   const router = useRouter();
 
   const fetchCart = async () => {
@@ -28,6 +28,15 @@ export default function CartPage() {
 
   useEffect(() => {
     fetchCart();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedAddress = localStorage.getItem('shippingAddress');
+      if (storedAddress) {
+        setShippingAddress(storedAddress);
+      }
+    }
   }, []);
 
   const updateQuantity = async (productId: number, newQuantity: number) => {
@@ -56,6 +65,18 @@ export default function CartPage() {
     } catch (error) {
       toast.error("Silme işlemi başarısız");
     }
+  };
+
+  const isShippingAddressValid = shippingAddress.trim().length > 0;
+
+  const handleProceedToCheckout = () => {
+    if (!isShippingAddressValid) {
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('shippingAddress', shippingAddress.trim());
+    }
+    router.push('/checkout');
   };
 
   if (loading) return <div className="text-center py-20">Sepet yükleniyor...</div>;
@@ -152,11 +173,26 @@ export default function CartPage() {
               </div>
             </div>
 
-            <Link href="/checkout" className="block w-full">
-              <Button className="w-full py-4 text-lg">
-                Ödemeye Geç <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
+            <div className="mb-4 space-y-2">
+              <label htmlFor="shippingAddress" className="text-sm font-medium text-gray-700">
+                Shipping Address
+              </label>
+              <textarea
+                id="shippingAddress"
+                className="w-full rounded-lg border px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                rows={3}
+                value={shippingAddress}
+                onChange={(event) => setShippingAddress(event.target.value)}
+              />
+            </div>
+
+            <Button
+              className="w-full py-4 text-lg"
+              onClick={handleProceedToCheckout}
+              disabled={!isShippingAddressValid}
+            >
+              Ödemeye Geç <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
           </div>
         </div>
       </div>

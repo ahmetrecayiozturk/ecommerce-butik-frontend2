@@ -90,6 +90,9 @@ export interface OrderResponse {
   totalPrice: number;
   status: OrderStatus;
   paymentId?: string;
+  shippingAddress?: string;
+  cargoFirm?: string;
+  trackingNumber?: string;
   createdAt?: string;
 }
 
