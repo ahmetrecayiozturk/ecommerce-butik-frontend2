@@ -2,14 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/services/api';
-import { OrderListResponse, OrderResponse } from '@/types';
+import { OrderListResponse, OrderResponse, RefundRequest } from '@/types';
 import { toast } from 'react-toastify';
+import Button from '@/components/ui/Button';
 
-const statusOptions = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+const statusOptions = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURN_REQUESTED'];
+
+const getPaymentTransactionId = (order: OrderResponse) =>
+  order.items.find((item) => item.paymentTransactionId)?.paymentTransactionId;
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refundingId, setRefundingId] = useState<number | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -39,6 +44,28 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleRefund = async (order: OrderResponse) => {
+    const paymentTransactionId = getPaymentTransactionId(order);
+    if (!paymentTransactionId) {
+      toast.error("Ödeme işlem numarası bulunamadı.");
+      return;
+    }
+    setRefundingId(order.id);
+    try {
+      const payload: RefundRequest = {
+        paymentTransactionId,
+        amount: order.totalPrice
+      };
+      await api.post('/payment/refund', payload);
+      toast.success("İade işlemi başlatıldı.");
+      fetchOrders();
+    } catch {
+      toast.error("İade işlemi başarısız oldu.");
+    } finally {
+      setRefundingId(null);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-20">Yükleniyor...</div>;
   }
@@ -49,7 +76,12 @@ export default function AdminOrdersPage() {
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Sipariş Yönetimi</h1>
         <div className="space-y-4">
           {orders.map((order) => (
-            <div key={order.id} className="border rounded-xl p-4">
+            <div
+              key={order.id}
+              className={`border rounded-xl p-4 ${
+                order.status === 'RETURN_REQUESTED' ? 'border-yellow-300 bg-yellow-50' : ''
+              }`}
+            >
               <div className="flex flex-wrap justify-between gap-4">
                 <div>
                   <div className="text-sm text-gray-500">Sipariş #{order.id}</div>
@@ -74,6 +106,14 @@ export default function AdminOrdersPage() {
                       </option>
                     ))}
                   </select>
+                  <Button
+                    variant="danger"
+                    onClick={() => handleRefund(order)}
+                    isLoading={refundingId === order.id}
+                    className="text-sm"
+                  >
+                    Refund
+                  </Button>
                 </div>
               </div>
               <div className="mt-4 border-t pt-4 space-y-2">
