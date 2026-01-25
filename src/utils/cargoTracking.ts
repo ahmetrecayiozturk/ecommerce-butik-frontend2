@@ -3,7 +3,7 @@ export const getTrackingUrl = (cargoFirm?: string, trackingCode?: string) => {
     return null;
   }
   const code = encodeURIComponent(trackingCode);
-  const normalizedFirm = cargoFirm.toLocaleLowerCase("tr-TR");
+  const normalizedFirm = cargoFirm.toLowerCase();
   switch (normalizedFirm) {
     case "yurtiçi":
     case "yurtici":
