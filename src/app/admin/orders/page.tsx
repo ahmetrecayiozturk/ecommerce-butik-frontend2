@@ -17,13 +17,9 @@ const statusOptions = [
 ];
 const cargoFirmOptions = ["Yurtiçi", "Aras", "MNG", "PTT"];
 
-const getPaymentTransactionId = (order: OrderResponse) =>
-  order.items.find((item) => item.paymentTransactionId)?.paymentTransactionId;
-
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refundingId, setRefundingId] = useState<number | null>(null);
   const [shipmentDetails, setShipmentDetails] = useState<
     Record<number, { cargoFirm: string; trackingNumber: string }>
   >({});
@@ -76,28 +72,6 @@ export default function AdminOrdersPage() {
       setStatusSelections((prev) => ({ ...prev, [order.id]: status }));
     } catch {
       toast.error("Sipariş güncellenemedi.");
-    }
-  };
-
-  const handleRefund = async (order: OrderResponse) => {
-    const paymentTransactionId = getPaymentTransactionId(order);
-    if (!paymentTransactionId) {
-      toast.error("Ödeme işlem numarası bulunamadı.");
-      return;
-    }
-    setRefundingId(order.id);
-    try {
-      const payload: RefundRequest = {
-        paymentTransactionId,
-        amount: order.totalPrice,
-      };
-      await api.post("/payment/refund", payload);
-      toast.success("İade işlemi başlatıldı.");
-      fetchOrders();
-    } catch {
-      toast.error("İade işlemi başarısız oldu.");
-    } finally {
-      setRefundingId(null);
     }
   };
 
@@ -171,14 +145,6 @@ export default function AdminOrdersPage() {
                       className="text-sm"
                     >
                       Güncelle
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={() => handleRefund(order)}
-                      isLoading={refundingId === order.id}
-                      className="text-sm"
-                    >
-                      İade Başlat
                     </Button>
                   </div>
                 </div>

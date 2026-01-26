@@ -7,8 +7,6 @@ import { toast } from "react-toastify";
 import Button from "@/components/ui/Button";
 import { getTrackingUrl } from "@/utils/cargoTracking";
 
-const statusActions: ReturnStatus[] = ["RECEIVED", "REFUNDED"];
-
 export default function AdminReturnsPage() {
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,9 +32,8 @@ export default function AdminReturnsPage() {
     item: ReturnRequest,
     status: ReturnStatus,
   ) => {
-    if (!item.id) {
-      return;
-    }
+    if (!item.id) return;
+    
     setProcessingId(item.id);
     try {
       const response = await ReturnService.updateStatus(item.id, status);
@@ -83,6 +80,7 @@ export default function AdminReturnsPage() {
                 className="border rounded-xl p-4 space-y-3"
               >
                 <div className="flex flex-wrap justify-between gap-4">
+                  {/* SOL TARAFTAKİ BİLGİLER */}
                   <div>
                     <div className="text-sm text-gray-500">
                       Sipariş #{item.orderId}
@@ -96,23 +94,65 @@ export default function AdminReturnsPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* SAĞ TARAFTAKİ BUTONLAR VE STATÜ */}
                   <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                      {item.status ?? "PENDING"}
+                    {/* STATÜ BADGE'İ */}
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold 
+                      ${item.status === 'REFUNDED' ? 'bg-green-100 text-green-600' : 
+                        item.status === 'REJECTED' ? 'bg-red-100 text-red-600' :
+                        item.status === 'RECEIVED' ? 'bg-blue-100 text-blue-600' : 
+                        'bg-yellow-100 text-yellow-600'}`}>
+                      {item.status === 'PENDING' ? 'Bekliyor' : 
+                       item.status === 'RECEIVED' ? 'İnceleniyor' : 
+                       item.status === 'REFUNDED' ? 'Kabul Edildi' : 
+                       item.status === 'REJECTED' ? 'Reddedildi' : 'Bekliyor'}
                     </span>
-                    {statusActions.map((status) => (
+
+                    {/* --- BUTON MANTIĞI BURADA DEĞİŞTİ --- */}
+
+                    {/* 1. ADIM: Sadece PENDING ise 'Teslim Al' göster */}
+                    {(item.status === "PENDING" || !item.status) && (
                       <Button
-                        key={status}
-                        className="text-sm"
-                        onClick={() => handleStatusUpdate(item, status)}
+                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => handleStatusUpdate(item, "RECEIVED")}
                         isLoading={processingId === item.id}
-                        disabled={item.status === status || !item.id}
                       >
-                        {status === "RECEIVED" ? "Teslim Al" : "Onayla"}
+                        Teslim Al
                       </Button>
-                    ))}
+                    )}
+
+                    {/* 2. ADIM: Sadece RECEIVED ise 'Onayla' göster */}
+                    {item.status === "RECEIVED" && (
+                      <Button
+                        className="text-sm bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => handleStatusUpdate(item, "REFUNDED")}
+                        isLoading={processingId === item.id}
+                      >
+                        Onayla
+                      </Button>
+                    )}
+
+                    {/* 3. ADIM: İşlem bitmediyse 'Reddet' hep görünsün */}
+                    {item.status !== "REFUNDED" && item.status !== "REJECTED" && (
+                      <Button
+                        className="text-sm bg-red-600 hover:bg-red-700 text-white ml-2"
+                        onClick={() => handleStatusUpdate(item, "REJECTED")}
+                        isLoading={processingId === item.id}
+                      >
+                        Reddet
+                      </Button>
+                    )}
+
+                    {/* 4. ADIM: İşlem bittiyse yazı göster */}
+                    {(item.status === "REFUNDED" || item.status === "REJECTED") && (
+                       <span className="text-xs text-gray-400 italic ml-2">İşlem Tamamlandı</span>
+                    )}
+
                   </div>
                 </div>
+
+                {/* ALT KISIMDAKİ DETAYLAR (AYNI KALDI) */}
                 <div className="text-sm text-gray-600 space-y-1">
                   <div>
                     <span className="font-medium text-gray-700">

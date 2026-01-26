@@ -18,7 +18,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { getTrackingUrl } from "@/utils/cargoTracking";
 
-const cancellableStatuses: OrderStatus[] = ["PENDING"];
+const cancellableStatuses: OrderStatus[] = ["PENDING", "PROCESSING"];
 const returnableStatuses: OrderStatus[] = ["DELIVERED"];
 const trackableStatuses: OrderStatus[] = ["SHIPPED", "DELIVERED"];
 const cargoFirmOptions = ["Yurtiçi", "Aras", "MNG", "PTT"];
