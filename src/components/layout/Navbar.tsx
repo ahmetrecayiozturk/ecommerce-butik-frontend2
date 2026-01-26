@@ -101,6 +101,11 @@ const Navbar = () => {
                           onClick={() => setIsProfileOpen(false)}>
                       <Package className="w-4 h-4 mr-2 text-gray-400" /> Siparişlerim
                     </Link>
+                    <Link href="/my-returns" 
+                          className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" 
+                          onClick={() => setIsProfileOpen(false)}>
+                      <Package className="w-4 h-4 mr-2 text-gray-400" /> İade Taleplerim
+                    </Link>
 
                     {isAdmin && (
                         <Link href="/admin/orders" 
@@ -188,6 +193,9 @@ const Navbar = () => {
                   </Link>
                   <Link href="/orders" className="text-gray-700 hover:text-blue-600 py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
                      <Package className="w-5 h-5 mr-3 text-gray-400" /> Siparişlerim
+                  </Link>
+                  <Link href="/my-returns" className="text-gray-700 hover:text-blue-600 py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
+                     <Package className="w-5 h-5 mr-3 text-gray-400" /> İade Taleplerim
                   </Link>
                   {isAdmin && (
                      <Link href="/admin/orders" className="text-red-600 font-bold py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>

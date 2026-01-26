@@ -269,18 +269,20 @@ export default function AdminOrdersPage() {
                     </div>
                   ))}
                 </div>
-                {trackingUrl && (
-                  <div className="mt-3 text-sm text-gray-600">
-                    <a
-                      href={trackingUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      🚚 Kargo Takip
-                    </a>
-                  </div>
-                )}
+                 <div className="mt-3 text-sm text-gray-600">
+                   {trackingUrl ? (
+                     <a
+                       href={trackingUrl}
+                       target="_blank"
+                       rel="noreferrer"
+                       className="text-blue-600 hover:underline"
+                     >
+                       🚚 Kargo Takip
+                     </a>
+                   ) : (
+                     "—"
+                   )}
+                 </div>
                 {order.paymentId && (
                   <div className="text-xs text-gray-400 mt-3">
                     Ödeme ID: {order.paymentId}

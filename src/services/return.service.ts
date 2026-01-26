@@ -3,6 +3,7 @@ import { ReturnRequest, ReturnStatus } from '@/types';
 
 const ReturnService = {
   create: (data: ReturnRequest) => api.post<ReturnRequest>('/returns', data),
+  getMyReturns: () => api.get<ReturnRequest[]>('/returns/my-returns'),
   getAll: () => api.get<ReturnRequest[]>('/returns/admin'),
   updateStatus: (id: number, status: ReturnStatus) =>
     api.put<ReturnRequest>(`/returns/${id}/status`, null, { params: { status } })
