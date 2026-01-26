@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/services/api";
-import { OrderListResponse, OrderResponse, RefundRequest } from "@/types";
+import { OrderListResponse, OrderResponse } from "@/types";
 import { toast } from "react-toastify";
 import Button from "@/components/ui/Button";
 import { getTrackingUrl } from "@/utils/cargoTracking";
@@ -13,7 +13,7 @@ const statusOptions = [
   "SHIPPED",
   "DELIVERED",
   "CANCELLED",
-  "RETURN_REQUESTED",
+  "RETURN_REQUESTED"
 ];
 const cargoFirmOptions = ["Yurtiçi", "Aras", "MNG", "PTT"];
 
@@ -92,14 +92,7 @@ export default function AdminOrdersPage() {
               order.trackingNumber,
             );
             return (
-              <div
-                key={order.id}
-                className={`border rounded-xl p-4 ${
-                  order.status === "RETURN_REQUESTED"
-                    ? "border-yellow-300 bg-yellow-50"
-                    : ""
-                }`}
-              >
+               <div key={order.id} className="border rounded-xl p-4">
                 <div className="flex flex-wrap justify-between gap-4">
                   <div>
                     <div className="text-sm text-gray-500">
@@ -117,12 +110,12 @@ export default function AdminOrdersPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      className="border rounded-lg px-3 py-2 text-sm"
-                      value={statusSelections[order.id] ?? order.status}
-                      onChange={(event) => {
-                        const nextStatus = event.target.value;
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700"
+                        value={statusSelections[order.id] ?? order.status}
+                        onChange={(event) => {
+                          const nextStatus = event.target.value;
                         setStatusSelections((prev) => ({
                           ...prev,
                           [order.id]: nextStatus,
@@ -134,20 +127,20 @@ export default function AdminOrdersPage() {
                           {status}
                         </option>
                       ))}
-                    </select>
-                    <Button
-                      onClick={() =>
-                        handleStatusChange(
-                          order,
-                          statusSelections[order.id] ?? order.status,
-                        )
-                      }
-                      className="text-sm"
-                    >
-                      Güncelle
-                    </Button>
+                      </select>
+                      <Button
+                        onClick={() =>
+                          handleStatusChange(
+                            order,
+                            statusSelections[order.id] ?? order.status,
+                          )
+                        }
+                        className="text-sm"
+                      >
+                        Güncelle
+                      </Button>
+                    </div>
                   </div>
-                </div>
                 {(statusSelections[order.id] ?? order.status) === "SHIPPED" && (
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <div className="flex flex-col gap-1">
@@ -159,7 +152,7 @@ export default function AdminOrdersPage() {
                       </label>
                       <select
                         id={`cargoFirm-${order.id}`}
-                        className="border rounded-lg px-3 py-2 text-sm"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700"
                         value={
                           shipmentDetails[order.id]?.cargoFirm ??
                           order.cargoFirm ??
@@ -195,7 +188,7 @@ export default function AdminOrdersPage() {
                       </label>
                       <input
                         id={`trackingNumber-${order.id}`}
-                        className="border rounded-lg px-3 py-2 text-sm"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700"
                         value={
                           shipmentDetails[order.id]?.trackingNumber ??
                           order.trackingNumber ??
@@ -236,19 +229,19 @@ export default function AdminOrdersPage() {
                   ))}
                 </div>
                  <div className="mt-3 text-sm text-gray-600">
-                   {trackingUrl ? (
-                     <a
-                       href={trackingUrl}
-                       target="_blank"
-                       rel="noreferrer"
-                       className="text-blue-600 hover:underline"
-                     >
-                       🚚 Kargo Takip
-                     </a>
-                   ) : (
-                     "—"
-                   )}
-                 </div>
+                    {trackingUrl ? (
+                      <a
+                        href={trackingUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-700 hover:underline"
+                      >
+                        🚚 Kargo Takip
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </div>
                 {order.paymentId && (
                   <div className="text-xs text-gray-400 mt-3">
                     Ödeme ID: {order.paymentId}

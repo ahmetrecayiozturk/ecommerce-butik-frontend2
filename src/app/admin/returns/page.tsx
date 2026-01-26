@@ -98,11 +98,7 @@ export default function AdminReturnsPage() {
                   {/* SAĞ TARAFTAKİ BUTONLAR VE STATÜ */}
                   <div className="flex items-center gap-2">
                     {/* STATÜ BADGE'İ */}
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold 
-                      ${item.status === 'REFUNDED' ? 'bg-green-100 text-green-600' : 
-                        item.status === 'REJECTED' ? 'bg-red-100 text-red-600' :
-                        item.status === 'RECEIVED' ? 'bg-blue-100 text-blue-600' : 
-                        'bg-yellow-100 text-yellow-600'}`}>
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-300 text-gray-700">
                       {item.status === 'PENDING' ? 'Bekliyor' : 
                        item.status === 'RECEIVED' ? 'İnceleniyor' : 
                        item.status === 'REFUNDED' ? 'Kabul Edildi' : 
@@ -114,7 +110,7 @@ export default function AdminReturnsPage() {
                     {/* 1. ADIM: Sadece PENDING ise 'Teslim Al' göster */}
                     {(item.status === "PENDING" || !item.status) && (
                       <Button
-                        className="text-sm bg-blue-600 hover:bg-blue-700 text-white"
+                        className="text-sm"
                         onClick={() => handleStatusUpdate(item, "RECEIVED")}
                         isLoading={processingId === item.id}
                       >
@@ -125,7 +121,7 @@ export default function AdminReturnsPage() {
                     {/* 2. ADIM: Sadece RECEIVED ise 'Onayla' göster */}
                     {item.status === "RECEIVED" && (
                       <Button
-                        className="text-sm bg-green-600 hover:bg-green-700 text-white"
+                        className="text-sm"
                         onClick={() => handleStatusUpdate(item, "REFUNDED")}
                         isLoading={processingId === item.id}
                       >
@@ -136,7 +132,8 @@ export default function AdminReturnsPage() {
                     {/* 3. ADIM: İşlem bitmediyse 'Reddet' hep görünsün */}
                     {item.status !== "REFUNDED" && item.status !== "REJECTED" && (
                       <Button
-                        className="text-sm bg-red-600 hover:bg-red-700 text-white ml-2"
+                        variant="danger"
+                        className="text-sm ml-2"
                         onClick={() => handleStatusUpdate(item, "REJECTED")}
                         isLoading={processingId === item.id}
                       >
@@ -169,7 +166,7 @@ export default function AdminReturnsPage() {
                         href={trackingUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-gray-700 hover:underline"
                       >
                         🔍 Kargoyu Sorgula
                       </a>

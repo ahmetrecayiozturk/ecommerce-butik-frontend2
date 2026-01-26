@@ -19,6 +19,7 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<ProductRequest>(initialForm);
+  const [editingStocks, setEditingStocks] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -30,6 +31,14 @@ export default function AdminProductsPage() {
         api.get<Category[]>('/categories')
       ]);
       setProducts(productsResponse.data.products);
+      setEditingStocks(
+        Object.fromEntries(
+          productsResponse.data.products.map((product) => [
+            product.id,
+            product.stock,
+          ]),
+        ),
+      );
       setCategories(categoriesResponse.data);
       if (categoriesResponse.data.length > 0) {
         setForm((prev) =>
@@ -54,6 +63,31 @@ export default function AdminProductsPage() {
       setProducts((prev) => prev.filter((product) => product.id !== productId));
     } catch {
       toast.error("Ürün silinemedi.");
+    }
+  };
+
+  const handleStockUpdate = async (
+    productId: number,
+    stock: number,
+    previousStock: number,
+  ) => {
+    try {
+      const response = await api.put<Product>(
+        `/products/admin/products/${productId}/stock`,
+        null,
+        { params: { stock } },
+      );
+      toast.success("Stok güncellendi.");
+      setProducts((prev) =>
+        prev.map((item) => (item.id === productId ? response.data : item)),
+      );
+      setEditingStocks((prev) => ({
+        ...prev,
+        [productId]: response.data.stock,
+      }));
+    } catch {
+      toast.error("Stok güncellenemedi.");
+      setEditingStocks((prev) => ({ ...prev, [productId]: previousStock }));
     }
   };
 
@@ -99,9 +133,30 @@ export default function AdminProductsPage() {
                   <td className="py-3 text-gray-500">
                     {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(product.price)}
                   </td>
-                  <td className="py-3 text-gray-500">{product.stock}</td>
+                  <td className="py-3 text-gray-500">
+                    <input
+                      type="number"
+                      className="w-24 border rounded-lg px-2 py-1 text-sm text-gray-700"
+                      value={editingStocks[product.id] ?? product.stock}
+                      min={0}
+                      onChange={(event) => {
+                        const nextStock = Number(event.target.value);
+                        setEditingStocks((prev) => ({
+                          ...prev,
+                          [product.id]: Number.isNaN(nextStock) ? 0 : nextStock,
+                        }));
+                      }}
+                      onBlur={(event) => {
+                        const nextStock = Number(event.target.value);
+                        const previousStock = product.stock;
+                        if (!Number.isNaN(nextStock) && nextStock !== previousStock) {
+                          handleStockUpdate(product.id, nextStock, previousStock);
+                        }
+                      }}
+                    />
+                  </td>
                   <td className="py-3 text-right">
-                    <Button variant="danger" onClick={() => handleDelete(product.id)}>
+                    <Button variant="secondary" onClick={() => handleDelete(product.id)}>
                       Sil
                     </Button>
                   </td>
