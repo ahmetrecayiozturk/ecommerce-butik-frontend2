@@ -132,7 +132,7 @@ export default function AdminReturnsPage() {
                     {/* 3. ADIM: İşlem bitmediyse 'Reddet' hep görünsün */}
                     {item.status !== "REFUNDED" && item.status !== "REJECTED" && (
                       <Button
-                        variant="danger"
+                        variant="secondary"
                         className="text-sm ml-2"
                         onClick={() => handleStatusUpdate(item, "REJECTED")}
                         isLoading={processingId === item.id}

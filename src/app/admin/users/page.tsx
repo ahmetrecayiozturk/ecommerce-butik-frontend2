@@ -39,12 +39,12 @@ export default function AdminUsersPage() {
     const now = Date.now();
     return new Map(
       users.map((user) => {
-        const lastLogin = user.lastLoginDate
-          ? new Date(user.lastLoginDate).getTime()
-          : null;
-        const minutesSinceLogin =
-          lastLogin === null ? Number.POSITIVE_INFINITY : (now - lastLogin) / 60000;
-        return [user.id, minutesSinceLogin < ONLINE_THRESHOLD_MINUTES];
+        if (!user.lastLoginDate) {
+          return [user.id, false] as const;
+        }
+        const lastLogin = new Date(user.lastLoginDate).getTime();
+        const minutesSinceLogin = (now - lastLogin) / 60000;
+        return [user.id, minutesSinceLogin < ONLINE_THRESHOLD_MINUTES] as const;
       }),
     );
   }, [users]);

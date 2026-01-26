@@ -15,6 +15,17 @@ const initialForm: ProductRequest = {
   categoryId: 0
 };
 
+const parseStockInput = (value: string) => {
+  if (value.trim() === "") {
+    return null;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const getFallbackStock = (current: Record<number, number>, product: Product) =>
+  current[product.id] ?? product.stock;
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -140,16 +151,26 @@ export default function AdminProductsPage() {
                       value={editingStocks[product.id] ?? product.stock}
                       min={0}
                       onChange={(event) => {
-                        const nextStock = Number(event.target.value);
-                        setEditingStocks((prev) => ({
-                          ...prev,
-                          [product.id]: Number.isNaN(nextStock) ? 0 : nextStock,
-                        }));
+                        const nextStock = parseStockInput(event.target.value);
+                        setEditingStocks((prev) => {
+                          const fallback = getFallbackStock(prev, product);
+                          return {
+                            ...prev,
+                            [product.id]: nextStock ?? fallback,
+                          };
+                        });
                       }}
                       onBlur={(event) => {
-                        const nextStock = Number(event.target.value);
+                        const nextStock = parseStockInput(event.target.value);
                         const previousStock = product.stock;
-                        if (!Number.isNaN(nextStock) && nextStock !== previousStock) {
+                        if (nextStock === null) {
+                          setEditingStocks((prev) => ({
+                            ...prev,
+                            [product.id]: getFallbackStock(prev, product),
+                          }));
+                          return;
+                        }
+                        if (nextStock !== previousStock) {
                           handleStockUpdate(product.id, nextStock, previousStock);
                         }
                       }}
