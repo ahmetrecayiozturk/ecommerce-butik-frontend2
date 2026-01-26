@@ -73,7 +73,7 @@ export default function AdminCategoriesPage() {
                 <div className="font-medium text-gray-800">{category.name}</div>
                 <div className="text-sm text-gray-500">{category.description}</div>
               </div>
-              <Button variant="danger" onClick={() => handleDelete(category.id)}>
+              <Button variant="secondary" onClick={() => handleDelete(category.id)}>
                 Sil
               </Button>
             </div>

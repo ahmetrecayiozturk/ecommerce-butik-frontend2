@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "@/services/api";
 import OrderService from "@/services/order.service";
@@ -207,24 +206,16 @@ function OrdersContent() {
                     )}
                     {returnableStatuses.includes(order.status) &&
                       (hasReturnRequest ? (
-                        <>
-                          <Button variant="outline" disabled>
-                            İade Talep Et
-                          </Button>
-                          <Link
-                            href="/my-returns"
-                            className="text-sm font-semibold text-blue-600 hover:underline"
-                          >
-                            İade Talebiniz Mevcut
-                          </Link>
-                        </>
+                        <Button variant="outline" disabled>
+                          İade Talebiniz Mevcut
+                        </Button>
                       ) : (
                         <Button
                           variant="outline"
                           onClick={() => openReturnModal(order)}
                           isLoading={processingId === order.id}
                         >
-                          İade Talep Et
+                          İade Et
                         </Button>
                       ))}
                   </div>
@@ -251,32 +242,32 @@ function OrdersContent() {
                   </div>
                   {(trackableStatuses.includes(order.status) ||
                     hasTrackingNumber) && (
-                    <>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Kargo Firması:
-                        </span>{" "}
-                        {order.cargoFirm || placeholderValue}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Takip Numarası:
-                        </span>{" "}
-                          {trackingUrl ? (
-                            <a
-                              href={trackingUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              🚚 Kargo Takip
-                            </a>
-                          ) : (
-                            placeholderValue
-                          )}
-                        </div>
-                      </>
-                    )}
+                     <>
+                       <div>
+                         <span className="font-medium text-gray-700">
+                           Kargo Firması:
+                         </span>{" "}
+                         {order.cargoFirm || placeholderValue}
+                       </div>
+                       <div>
+                         <span className="font-medium text-gray-700">
+                           Takip Numarası:
+                         </span>{" "}
+                         {trackingUrl ? (
+                           <a
+                             href={trackingUrl}
+                             target="_blank"
+                             rel="noreferrer"
+                             className="text-blue-600 hover:underline"
+                           >
+                             🚚 Kargo Takip
+                           </a>
+                         ) : (
+                           placeholderValue
+                         )}
+                       </div>
+                     </>
+                   )}
                 </div>
                 {order.paymentId && (
                   <div className="text-xs text-gray-400">
