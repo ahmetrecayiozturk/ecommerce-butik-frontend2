@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext"; // <-- EKLENDİ
@@ -6,6 +7,8 @@ import { ToastContainer } from 'react-toastify';
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import 'react-toastify/dist/ReactToastify.css';
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Simple E-Commerce",
@@ -18,12 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr">
-      <body>
+    <html lang="tr" className={inter.variable}>
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         <AuthProvider>
           {/* CartProvider, AuthProvider'ın İÇİNDE olmalı */}
           <CartProvider> 
-            <div className="min-h-screen flex flex-col bg-gray-50">
+            <div className="min-h-screen flex flex-col bg-background">
               <Navbar />
               <main className="flex-grow container mx-auto px-4 py-8">
                 {children}
