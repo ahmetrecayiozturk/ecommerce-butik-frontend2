@@ -16,6 +16,7 @@ import { useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { getTrackingUrl } from "@/utils/cargoTracking";
+import { XCircle, AlertCircle } from "lucide-react";
 
 const cancellableStatuses: OrderStatus[] = ["PENDING", "PROCESSING"];
 const returnableStatuses: OrderStatus[] = ["DELIVERED"];
@@ -27,19 +28,16 @@ function OrdersContent() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
-  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(
-    null,
-  );
-  const [returnModalOrder, setReturnModalOrder] =
-    useState<OrderResponse | null>(null);
-  const [returnOrderIds, setReturnOrderIds] = useState<Set<number>>(
-    () => new Set(),
-  );
+  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
+  const [returnModalOrder, setReturnModalOrder] = useState<OrderResponse | null>(null);
+  const [returnOrderIds, setReturnOrderIds] = useState<Set<number>>(() => new Set());
+  
   const [returnForm, setReturnForm] = useState({
     cargoFirm: cargoFirmOptions[0],
     trackingCode: "",
     reason: "",
   });
+  
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const { refreshCart } = useCart();
@@ -54,9 +52,7 @@ function OrdersContent() {
       setOrders(ordersResponse.data.orders);
       try {
         const returnsResponse = await ReturnService.getMyReturns();
-        setReturnOrderIds(
-          new Set(returnsResponse.data.map((item) => item.orderId)),
-        );
+        setReturnOrderIds(new Set(returnsResponse.data.map((item) => item.orderId)));
       } catch {
         setReturnOrderIds(new Set());
       }
@@ -73,7 +69,7 @@ function OrdersContent() {
 
   const paymentSuccess = useMemo(
     () => searchParams.get("payment") === "success",
-    [searchParams],
+    [searchParams]
   );
 
   useEffect(() => {
@@ -84,14 +80,13 @@ function OrdersContent() {
     }
   }, [paymentSuccess, refreshCart]);
 
+  // --- TÜM SİPARİŞİ İPTAL ETME ---
   const handleCancel = async (orderId: number) => {
     setConfirmingOrderId(orderId);
   };
 
   const confirmCancel = async () => {
-    if (!confirmingOrderId) {
-      return;
-    }
+    if (!confirmingOrderId) return;
     const orderId = confirmingOrderId;
     setConfirmingOrderId(null);
     setProcessingId(orderId);
@@ -106,6 +101,20 @@ function OrdersContent() {
     }
   };
 
+  // --- YENİ: TEK ÜRÜN İPTAL ETME ---
+  const handleCancelItem = async (itemId: number) => {
+    if (!confirm("Bu ürünü iptal etmek istiyor musunuz? Ödemeniz kartınıza iade edilecektir.")) return;
+
+    try {
+      await api.put(`/orders/items/${itemId}/cancel`);
+      toast.success("Ürün iptal edildi, para iadesi başlatıldı.");
+      fetchOrders(); 
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "İptal işlemi başarısız.");
+    }
+  };
+
+  // --- İADE MODALI İŞLEMLERİ ---
   const openReturnModal = (order: OrderResponse) => {
     setReturnForm({
       cargoFirm: cargoFirmOptions[0],
@@ -116,9 +125,7 @@ function OrdersContent() {
   };
 
   const submitReturnRequest = async () => {
-    if (!returnModalOrder) {
-      return;
-    }
+    if (!returnModalOrder) return;
     if (!user?.id) {
       toast.error("Kullanıcı bilgisi bulunamadı.");
       return;
@@ -165,225 +172,205 @@ function OrdersContent() {
           Ödeme Başarılı
         </div>
       )}
+      
       <div className="bg-white rounded-2xl border shadow-sm p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Siparişlerim</h1>
-        <div className="space-y-4">
+        
+        <div className="space-y-6">
           {orders.map((order) => {
-            const trackingUrl = getTrackingUrl(
-              order.cargoFirm,
-              order.trackingNumber,
-            );
+            const trackingUrl = getTrackingUrl(order.cargoFirm, order.trackingNumber);
             const hasReturnRequest = returnOrderIds.has(order.id);
             const hasTrackingNumber = Boolean(order.trackingNumber);
+            const isOrderCancellable = cancellableStatuses.includes(order.status);
+
             return (
-              <div key={order.id} className="border rounded-xl p-4 space-y-4">
-                <div className="flex flex-wrap justify-between gap-4">
+              <div key={order.id} className="border rounded-xl p-4 space-y-4 shadow-sm hover:shadow-md transition">
+                
+                {/* SİPARİŞ BAŞLIĞI VE DURUMU */}
+                <div className="flex flex-wrap justify-between gap-4 border-b pb-4">
                   <div>
-                    <div className="text-sm text-gray-500">
-                      Sipariş #{order.id}
-                    </div>
-                    <div className="font-semibold text-gray-800">
-                      {formatCurrency(order.totalPrice)}
-                    </div>
+                    <div className="text-sm text-gray-500">Sipariş #{order.id}</div>
+                    <div className="font-semibold text-gray-800">{formatCurrency(order.totalPrice)}</div>
                     {order.createdAt && (
                       <div className="text-sm text-gray-400">
                         {new Date(order.createdAt).toLocaleString("tr-TR")}
                       </div>
                     )}
                   </div>
+                  
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold 
+                        ${order.status === 'CANCELLED' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
                       {order.status}
                     </span>
-                    {cancellableStatuses.includes(order.status) && (
+                    
+                    {/* Tüm Siparişi İptal Butonu */}
+                    {isOrderCancellable && (
                       <Button
                         variant="danger"
                         onClick={() => handleCancel(order.id)}
                         isLoading={processingId === order.id}
+                        className="text-xs px-3 py-1"
                       >
-                        İptal Et
+                        Tümünü İptal Et
                       </Button>
                     )}
+                    
+                    {/* İade Butonu (Teslim Edildiyse) */}
                     {returnableStatuses.includes(order.status) &&
                       (hasReturnRequest ? (
-                        <Button variant="outline" disabled>
-                          İade Talebiniz Mevcut
-                        </Button>
+                        <Button variant="outline" disabled className="text-xs">İade Talebiniz Mevcut</Button>
                       ) : (
                         <Button
                           variant="outline"
                           onClick={() => openReturnModal(order)}
                           isLoading={processingId === order.id}
+                          className="text-xs"
                         >
                           İade Et
                         </Button>
                       ))}
                   </div>
                 </div>
-                <div className="border-t pt-4 space-y-2">
-                  {order.items.map((item) => (
+
+                {/* --- ÜRÜN LİSTESİ --- */}
+                <div className="space-y-3">
+                  {order.items.map((item, index) => (
                     <div
-                      key={item.productId}
-                      className="flex justify-between text-sm text-gray-600"
+                      key={index}
+                      className={`flex justify-between items-center text-sm p-3 rounded-lg border ${
+                        item.status === 'CANCELLED' ? 'bg-red-50 border-red-100 opacity-75' : 'bg-gray-50 border-gray-100'
+                      }`}
                     >
-                      <span>
-                        {item.productName} x{item.quantity}
-                      </span>
-                      <span>{formatCurrency(item.subtotal)}</span>
+                      <div className="flex flex-col">
+                        <span className={`font-medium ${item.status === 'CANCELLED' ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                          {item.productName}
+                        </span>
+                        <span className="text-xs text-gray-500">{item.quantity} Adet</span>
+                        
+                        {item.status === 'CANCELLED' && (
+                            <span className="text-[10px] text-red-600 font-bold flex items-center mt-1">
+                                <AlertCircle className="w-3 h-3 mr-1" /> İPTAL EDİLDİ
+                            </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <span className="font-semibold text-gray-700">{formatCurrency(item.subtotal)}</span>
+                        
+                        {/* TEK ÜRÜN İPTAL BUTONU */}
+                        {item.status !== 'CANCELLED' && isOrderCancellable && (
+                            <button
+                                onClick={() => handleCancelItem(item.id)}
+                                className="text-red-500 hover:bg-red-100 p-2 rounded-full transition"
+                                title="Bu ürünü iptal et"
+                            >
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-                <div className="text-sm text-gray-600 space-y-1">
+
+                {/* ADRES VE KARGO BİLGİLERİ */}
+                <div className="text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-lg">
                   <div>
-                    <span className="font-medium text-gray-700">
-                      Teslimat Adresi:
-                    </span>{" "}
+                    <span className="font-medium text-gray-700">Teslimat Adresi:</span>{" "}
                     {order.shippingAddress || placeholderValue}
                   </div>
-                  {(trackableStatuses.includes(order.status) ||
-                    hasTrackingNumber) && (
-                     <>
-                       <div>
-                         <span className="font-medium text-gray-700">
-                           Kargo Firması:
-                         </span>{" "}
-                         {order.cargoFirm || placeholderValue}
-                       </div>
-                       <div>
-                         <span className="font-medium text-gray-700">
-                           Takip Numarası:
-                         </span>{" "}
-                         {trackingUrl ? (
-                           <a
-                             href={trackingUrl}
-                             target="_blank"
-                             rel="noreferrer"
-                             className="text-blue-600 hover:underline"
-                           >
-                             🚚 Kargo Takip
-                           </a>
-                         ) : (
-                           placeholderValue
-                         )}
-                       </div>
-                     </>
-                   )}
+                  
+                  {(trackableStatuses.includes(order.status) || hasTrackingNumber) && (
+                    <>
+                      <div>
+                        <span className="font-medium text-gray-700">Kargo Firması:</span>{" "}
+                        {order.cargoFirm || placeholderValue}
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Takip Numarası:</span>{" "}
+                        {trackingUrl ? (
+                          <a href={trackingUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                            🚚 Kargo Takip
+                          </a>
+                        ) : (
+                          placeholderValue
+                        )}
+                      </div>
+                    </>
+                  )}
+                  
+                  {order.paymentId && (
+                    <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-200">
+                      Ödeme ID: {order.paymentId}
+                    </div>
+                  )}
                 </div>
-                {order.paymentId && (
-                  <div className="text-xs text-gray-400">
-                    Ödeme ID: {order.paymentId}
-                  </div>
-                )}
+
               </div>
             );
           })}
+          
           {orders.length === 0 && (
-            <div className="text-sm text-gray-500">Henüz sipariş yok.</div>
+            <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-gray-500">
+                Henüz sipariş yok.
+            </div>
           )}
         </div>
       </div>
+
+      {/* --- İPTAL ONAY MODALI --- */}
       {confirmingOrderId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-2xl shadow-lg border p-6 w-full max-w-md space-y-4">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Siparişi iptal et
-            </h2>
-            <p className="text-sm text-gray-600">
-              Bu siparişi iptal etmek istediğinize emin misiniz?
-            </p>
+            <h2 className="text-lg font-semibold text-gray-800">Siparişi iptal et</h2>
+            <p className="text-sm text-gray-600">Bu siparişi tamamen iptal etmek istediğinize emin misiniz?</p>
             <div className="flex justify-end gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => setConfirmingOrderId(null)}
-              >
-                Vazgeç
-              </Button>
-              <Button
-                variant="danger"
-                onClick={confirmCancel}
-                isLoading={processingId !== null}
-              >
-                İptal Et
-              </Button>
+              <Button variant="secondary" onClick={() => setConfirmingOrderId(null)}>Vazgeç</Button>
+              <Button variant="danger" onClick={confirmCancel} isLoading={processingId !== null}>İptal Et</Button>
             </div>
           </div>
         </div>
       )}
+
+      {/* --- İADE MODALI --- */}
       {returnModalOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-2xl shadow-lg border p-6 w-full max-w-md space-y-4">
-            <h2 className="text-lg font-semibold text-gray-800">
-              İade Talebi Oluştur
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-800">İade Talebi Oluştur</h2>
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Kargo Firması
-                </label>
+                <label className="text-sm font-medium text-gray-700">Kargo Firması</label>
                 <select
                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
                   value={returnForm.cargoFirm}
-                  onChange={(event) =>
-                    setReturnForm((prev) => ({
-                      ...prev,
-                      cargoFirm: event.target.value,
-                    }))
-                  }
+                  onChange={(e) => setReturnForm((prev) => ({ ...prev, cargoFirm: e.target.value }))}
                 >
-                  {cargoFirmOptions.map((firm) => (
-                    <option key={firm} value={firm}>
-                      {firm}
-                    </option>
-                  ))}
+                  {cargoFirmOptions.map((firm) => <option key={firm} value={firm}>{firm}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Takip Kodu
-                </label>
+                <label className="text-sm font-medium text-gray-700">Takip Kodu</label>
                 <input
                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
                   value={returnForm.trackingCode}
-                  onChange={(event) =>
-                    setReturnForm((prev) => ({
-                      ...prev,
-                      trackingCode: event.target.value,
-                    }))
-                  }
+                  onChange={(e) => setReturnForm((prev) => ({ ...prev, trackingCode: e.target.value }))}
                   required
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  İade Sebebi
-                </label>
+                <label className="text-sm font-medium text-gray-700">İade Sebebi</label>
                 <textarea
                   className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
                   rows={3}
                   value={returnForm.reason}
-                  onChange={(event) =>
-                    setReturnForm((prev) => ({
-                      ...prev,
-                      reason: event.target.value,
-                    }))
-                  }
+                  onChange={(e) => setReturnForm((prev) => ({ ...prev, reason: e.target.value }))}
                   required
                 />
               </div>
             </div>
             <div className="flex justify-end gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => setReturnModalOrder(null)}
-              >
-                Vazgeç
-              </Button>
-              <Button
-                onClick={submitReturnRequest}
-                isLoading={processingId === returnModalOrder.id}
-              >
-                Gönder
-              </Button>
+              <Button variant="secondary" onClick={() => setReturnModalOrder(null)}>Vazgeç</Button>
+              <Button onClick={submitReturnRequest} isLoading={processingId === returnModalOrder.id}>Gönder</Button>
             </div>
           </div>
         </div>

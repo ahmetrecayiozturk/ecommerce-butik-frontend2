@@ -54,14 +54,18 @@ export interface ProductResponse {
 
 export type Product = ProductResponse;
 
+// --- GÜNCELLENEN KISIM ---
 export interface OrderItemResponse {
+  id: number; // <--- YENİ: Backend'deki OrderItem ID
   productId: number;
   productName: string;
   quantity: number;
   price: number;
   subtotal: number;
   paymentTransactionId?: string;
+  status: 'ACTIVE' | 'CANCELLED' | 'RETURNED'; // <--- YENİ: Statü
 }
+// -------------------------
 
 export type OrderStatus =
   | 'PENDING'
@@ -71,11 +75,12 @@ export type OrderStatus =
   | 'CANCELLED'
   | 'RETURN_REQUESTED';
 
+// OrderResponse içinde items dizisinin bu tipi kullandığından emin ol:
 export interface OrderResponse {
   id: number;
-  items: OrderItemResponse[];
+  items: OrderItemResponse[]; // <-- Burası önemli
   totalPrice: number;
-  status: OrderStatus;
+  status: string;
   paymentId?: string;
   shippingAddress?: string;
   cargoFirm?: string;

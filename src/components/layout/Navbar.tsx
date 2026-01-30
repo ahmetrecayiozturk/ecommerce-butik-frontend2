@@ -1,10 +1,13 @@
 "use client";
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Yönlendirme için
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { ShoppingCart, User, LogOut, Menu, X, ChevronDown, Package, UserCircle, Search } from 'lucide-react';
+import { 
+  ShoppingCart, User, LogOut, Menu, X, ChevronDown, 
+  Package, UserCircle, Search, LayoutDashboard, MessageCircle, Mail 
+} from 'lucide-react'; // <--- MessageCircle ve Mail ikonlarını ekledik
 import { useState } from 'react';
 
 const Navbar = () => {
@@ -16,15 +19,15 @@ const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Admin kontrolü
   const isAdmin = user?.role?.includes('ADMIN') ?? false;
 
   // Arama Fonksiyonu
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Arama sayfasına yönlendir
       router.push(`/products?q=${encodeURIComponent(searchQuery)}`);
-      setIsMenuOpen(false); // Mobildeysek menüyü kapat
+      setIsMenuOpen(false);
     }
   };
 
@@ -38,7 +41,7 @@ const Navbar = () => {
             ShopApp
           </Link>
 
-          {/* 2. ORTA: ARAMA ÇUBUĞU (Sadece Masaüstü) */}
+          {/* 2. ORTA: ARAMA ÇUBUĞU */}
           <div className="hidden md:flex flex-1 mx-8 max-w-lg">
             <form onSubmit={handleSearch} className="w-full relative">
               <input
@@ -59,19 +62,31 @@ const Navbar = () => {
 
           {/* 3. SAĞ: MENÜLER */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link href="/products" className="text-gray-600 hover:text-blue-600 transition font-medium">
-              Ürünler
-            </Link>
             
-            {/* Sepet İkonu */}
-            <Link href="/cart" className="relative text-gray-600 hover:text-blue-600 transition group">
-              <ShoppingCart className="w-6 h-6 group-hover:text-blue-600" />
-              {cart && cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
-                  {cart.length}
-                </span>
-              )}
-            </Link>
+            {/* --- KULLANICI LİNKLERİ (Ürünler & Destek) --- */}
+            {!isAdmin && (
+              <>
+                <Link href="/products" className="text-gray-600 hover:text-blue-600 transition font-medium">
+                  Ürünler
+                </Link>
+                {/* YENİ: Destek Butonu */}
+                <Link href="/contact" className="text-gray-600 hover:text-blue-600 transition font-medium flex items-center">
+                  Destek
+                </Link>
+              </>
+            )}
+            
+            {/* Sepet İkonu: ADMIN GÖRMESİN */}
+            {!isAdmin && (
+              <Link href="/cart" className="relative text-gray-600 hover:text-blue-600 transition group">
+                <ShoppingCart className="w-6 h-6 group-hover:text-blue-600" />
+                {cart && cart.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
+                    {cart.length}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {isAuthenticated ? (
               <div className="relative">
@@ -85,9 +100,10 @@ const Navbar = () => {
                 </button>
 
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-3 w-48 bg-white rounded-lg shadow-xl py-2 border border-gray-100 ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="absolute right-0 mt-3 w-60 bg-white rounded-lg shadow-xl py-2 border border-gray-100 ring-1 ring-black ring-opacity-5 z-50">
                     <div className="px-4 py-2 border-b border-gray-100 text-xs text-gray-500">
                       Merhaba, {user?.firstName}
+                      {isAdmin && <span className="block text-red-600 font-bold mt-1">(Yönetici)</span>}
                     </div>
                     
                     <Link href="/profile" 
@@ -96,23 +112,43 @@ const Navbar = () => {
                       <UserCircle className="w-4 h-4 mr-2 text-gray-400" /> Profilim
                     </Link>
                     
-                    <Link href="/orders" 
-                          className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" 
-                          onClick={() => setIsProfileOpen(false)}>
-                      <Package className="w-4 h-4 mr-2 text-gray-400" /> Siparişlerim
-                    </Link>
-                    <Link href="/my-returns" 
-                          className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" 
-                          onClick={() => setIsProfileOpen(false)}>
-                      <Package className="w-4 h-4 mr-2 text-gray-400" /> İade Taleplerim
-                    </Link>
-
-                    {isAdmin && (
-                        <Link href="/admin/orders" 
-                              className="px-4 py-2 text-sm text-red-600 font-semibold hover:bg-red-50 flex items-center" 
+                    {/* SİPARİŞ ve İADE LİNKLERİ: ADMIN GÖRMESİN */}
+                    {!isAdmin && (
+                      <>
+                        <Link href="/orders" 
+                              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" 
                               onClick={() => setIsProfileOpen(false)}>
-                          Yönetim Paneli
+                          <Package className="w-4 h-4 mr-2 text-gray-400" /> Siparişlerim
                         </Link>
+                        <Link href="/my-returns" 
+                              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" 
+                              onClick={() => setIsProfileOpen(false)}>
+                          <Package className="w-4 h-4 mr-2 text-gray-400" /> İade Taleplerim
+                        </Link>
+                        {/* Kullanıcı için Mesajlarım Linki */}
+                        <Link href="/contact/my-messages" 
+                              className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center" 
+                              onClick={() => setIsProfileOpen(false)}>
+                          <MessageCircle className="w-4 h-4 mr-2 text-gray-400" /> Mesajlarım
+                        </Link>
+                      </>
+                    )}
+
+                    {/* YÖNETİM PANELİ & DESTEK: SADECE ADMIN */}
+                    {isAdmin && (
+                        <>
+                          <Link href="/admin/orders" 
+                                className="px-4 py-2 text-sm text-red-600 font-semibold hover:bg-red-50 flex items-center" 
+                                onClick={() => setIsProfileOpen(false)}>
+                            <LayoutDashboard className="w-4 h-4 mr-2" /> Yönetim Paneli
+                          </Link>
+                          {/* Admin İçin Destek Paneli Linki */}
+                          <Link href="/admin/messages" 
+                                className="px-4 py-2 text-sm text-blue-600 font-semibold hover:bg-blue-50 flex items-center" 
+                                onClick={() => setIsProfileOpen(false)}>
+                            <Mail className="w-4 h-4 mr-2" /> Destek Talepleri
+                          </Link>
+                        </>
                     )}
                     
                     <div className="border-t border-gray-100 mt-2 pt-2">
@@ -143,14 +179,17 @@ const Navbar = () => {
 
           {/* --- MOBİL MENÜ BUTONU --- */}
           <div className="md:hidden flex items-center space-x-4">
-            <Link href="/cart" className="relative text-gray-600">
-               <ShoppingCart className="w-6 h-6" />
-               {cart && cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
-                  {cart.length}
-                </span>
-               )}
-            </Link>
+            {/* Mobilde Sepet: ADMIN GÖRMESİN */}
+            {!isAdmin && (
+              <Link href="/cart" className="relative text-gray-600">
+                <ShoppingCart className="w-6 h-6" />
+                {cart && cart.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
+                    {cart.length}
+                  </span>
+                )}
+              </Link>
+            )}
             
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-600 p-1">
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -162,7 +201,6 @@ const Navbar = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-100 bg-white absolute top-16 left-0 right-0 shadow-lg px-4 flex flex-col space-y-4 z-40">
             
-            {/* Mobilde Arama Kutusu */}
             <form onSubmit={handleSearch} className="relative w-full">
               <input
                 type="text"
@@ -176,9 +214,17 @@ const Navbar = () => {
               </button>
             </form>
 
-            <Link href="/products" className="text-gray-700 hover:text-blue-600 font-medium py-1" onClick={() => setIsMenuOpen(false)}>
-              Tüm Ürünler
-            </Link>
+            {/* Mobilde Ürünler ve Destek: ADMIN GÖRMESİN */}
+            {!isAdmin && (
+              <>
+                <Link href="/products" className="text-gray-700 hover:text-blue-600 font-medium py-1" onClick={() => setIsMenuOpen(false)}>
+                  Tüm Ürünler
+                </Link>
+                <Link href="/contact" className="text-gray-700 hover:text-blue-600 font-medium py-1" onClick={() => setIsMenuOpen(false)}>
+                  Destek
+                </Link>
+              </>
+            )}
             
             {isAuthenticated ? (
               <>
@@ -189,19 +235,36 @@ const Navbar = () => {
                   </div>
                   
                   <Link href="/profile" className="text-gray-700 hover:text-blue-600 py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
-                     <UserCircle className="w-5 h-5 mr-3 text-gray-400" /> Profilim
+                      <UserCircle className="w-5 h-5 mr-3 text-gray-400" /> Profilim
                   </Link>
-                  <Link href="/orders" className="text-gray-700 hover:text-blue-600 py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
-                     <Package className="w-5 h-5 mr-3 text-gray-400" /> Siparişlerim
-                  </Link>
-                  <Link href="/my-returns" className="text-gray-700 hover:text-blue-600 py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
-                     <Package className="w-5 h-5 mr-3 text-gray-400" /> İade Taleplerim
-                  </Link>
-                  {isAdmin && (
-                     <Link href="/admin/orders" className="text-red-600 font-bold py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
-                       <span className="w-5 mr-3 text-center">🛡️</span> Yönetim Paneli
-                     </Link>
+
+                  {/* Mobilde Sipariş/İade: ADMIN GÖRMESİN */}
+                  {!isAdmin && (
+                    <>
+                      <Link href="/orders" className="text-gray-700 hover:text-blue-600 py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
+                          <Package className="w-5 h-5 mr-3 text-gray-400" /> Siparişlerim
+                      </Link>
+                      <Link href="/my-returns" className="text-gray-700 hover:text-blue-600 py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
+                          <Package className="w-5 h-5 mr-3 text-gray-400" /> İade Taleplerim
+                      </Link>
+                      <Link href="/contact/my-messages" className="text-gray-700 hover:text-blue-600 py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
+                          <MessageCircle className="w-5 h-5 mr-3 text-gray-400" /> Mesajlarım
+                      </Link>
+                    </>
                   )}
+
+                  {/* Admin Menüsü Mobil */}
+                  {isAdmin && (
+                      <>
+                        <Link href="/admin/orders" className="text-red-600 font-bold py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
+                          <LayoutDashboard className="w-5 h-5 mr-3" /> Yönetim Paneli
+                        </Link>
+                        <Link href="/admin/messages" className="text-blue-600 font-bold py-2 flex items-center" onClick={() => setIsMenuOpen(false)}>
+                          <Mail className="w-5 h-5 mr-3" /> Destek Talepleri
+                        </Link>
+                      </>
+                  )}
+
                   <button onClick={() => {logout(); setIsMenuOpen(false);}} className="text-left text-red-500 hover:text-red-700 py-2 flex items-center w-full mt-2">
                     <LogOut className="w-5 h-5 mr-3" /> Çıkış Yap
                   </button>
