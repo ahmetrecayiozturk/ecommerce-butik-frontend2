@@ -1,12 +1,17 @@
 import api from '@/services/api';
-import { ReturnRequest, ReturnStatus } from '@/types';
+import {
+  OrderResponse,
+  OrderReturnDecisionRequest,
+  OrderReturnRequest,
+} from '@/types';
 
 const ReturnService = {
-  create: (data: ReturnRequest) => api.post<ReturnRequest>('/returns', data),
-  getMyReturns: () => api.get<ReturnRequest[]>('/returns/my-returns'),
-  getAll: () => api.get<ReturnRequest[]>('/returns/admin'),
-  updateStatus: (id: number, status: ReturnStatus) =>
-    api.put<ReturnRequest>(`/returns/${id}/status`, null, { params: { status } })
+  requestReturn: (orderId: number, data: OrderReturnRequest) =>
+    api.post<OrderResponse>(`/orders/${orderId}/return`, data),
+  processReturnRequest: (orderId: number, data: OrderReturnDecisionRequest) =>
+    api.put<OrderResponse>(`/admin/orders/${orderId}/return`, data),
+  markReturnReceived: (orderId: number) =>
+    api.post<OrderResponse>(`/admin/orders/${orderId}/return-received`),
 };
 
 export default ReturnService;

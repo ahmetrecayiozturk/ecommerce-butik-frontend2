@@ -1,48 +1,79 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import api from "@/services/api";
 import ReturnService from "@/services/return.service";
-import { ReturnRequest, ReturnStatus } from "@/types";
+import { OrderListResponse, OrderResponse, OrderStatus } from "@/types";
 import { toast } from "react-toastify";
 import Button from "@/components/ui/Button";
-import { getTrackingUrl } from "@/utils/cargoTracking";
+
+const returnStatuses: OrderStatus[] = [
+  "RETURN_REQUESTED",
+  "RETURN_APPROVED",
+  "RETURN_REJECTED",
+  "RETURN_RECEIVED",
+];
 
 export default function AdminReturnsPage() {
-  const [returns, setReturns] = useState<ReturnRequest[]>([]);
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [adminNotes, setAdminNotes] = useState<Record<number, string>>({});
 
-  const fetchReturns = async () => {
+  const fetchReturns = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await ReturnService.getAll();
-      setReturns(response.data);
+      const response = await api.get<OrderListResponse>("/admin/orders", {
+        params: { page: 0, size: 50 },
+      });
+      const returnOrders = response.data.orders.filter((order) =>
+        returnStatuses.includes(order.status),
+      );
+      setOrders(returnOrders);
     } catch {
       toast.error("İade talepleri yüklenemedi.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchReturns();
-  }, []);
+  }, [fetchReturns]);
 
-  const handleStatusUpdate = async (
-    item: ReturnRequest,
-    status: ReturnStatus,
-  ) => {
-    if (!item.id) return;
-    
-    setProcessingId(item.id);
+  const handleDecision = async (order: OrderResponse, approved: boolean) => {
+    setProcessingId(order.id);
     try {
-      const response = await ReturnService.updateStatus(item.id, status);
-      toast.success("İade durumu güncellendi.");
-      setReturns((prev) =>
-        prev.map((entry) => (entry.id === item.id ? response.data : entry)),
+      const response = await ReturnService.processReturnRequest(order.id, {
+        approved,
+        adminNotes: adminNotes[order.id]?.trim() || undefined,
+      });
+      toast.success(approved ? "İade talebi onaylandı." : "İade talebi reddedildi.");
+      setOrders((prev) =>
+        prev.map((entry) => (entry.id === order.id ? response.data : entry)),
+      );
+      setAdminNotes((prev) => {
+        const next = { ...prev };
+        delete next[order.id];
+        return next;
+      });
+    } catch {
+      toast.error("İade talebi güncellenemedi.");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleMarkReceived = async (order: OrderResponse) => {
+    setProcessingId(order.id);
+    try {
+      const response = await ReturnService.markReturnReceived(order.id);
+      toast.success("İade teslim alındı olarak işaretlendi.");
+      setOrders((prev) =>
+        prev.map((entry) => (entry.id === order.id ? response.data : entry)),
       );
     } catch {
-      toast.error("İade durumu güncellenemedi.");
+      toast.error("İade teslim alındı olarak işaretlenemedi.");
     } finally {
       setProcessingId(null);
     }
@@ -50,12 +81,12 @@ export default function AdminReturnsPage() {
 
   const sortedReturns = useMemo(
     () =>
-      [...returns].sort((a, b) => {
+      [...orders].sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       }),
-    [returns],
+    [orders],
   );
 
   if (loading) {
@@ -69,28 +100,29 @@ export default function AdminReturnsPage() {
           İade Talepleri
         </h1>
         <div className="space-y-4">
-          {sortedReturns.map((item) => {
-            const trackingUrl = getTrackingUrl(
-              item.cargoFirm,
-              item.trackingCode,
-            );
+          {sortedReturns.map((order) => {
+            const isRequested = order.status === "RETURN_REQUESTED";
+            const canMarkReceived = order.status === "RETURN_APPROVED";
             return (
               <div
-                key={item.id ?? `${item.orderId}-${item.userId}`}
+                key={order.id}
                 className="border rounded-xl p-4 space-y-3"
               >
                 <div className="flex flex-wrap justify-between gap-4">
                   {/* SOL TARAFTAKİ BİLGİLER */}
                   <div>
                     <div className="text-sm text-gray-500">
-                      Sipariş #{item.orderId}
+                      Sipariş #{order.id}
                     </div>
                     <div className="text-sm text-gray-500">
-                      Kullanıcı #{item.userId}
+                      {new Intl.NumberFormat("tr-TR", {
+                        style: "currency",
+                        currency: "TRY",
+                      }).format(order.totalPrice)}
                     </div>
-                    {item.createdAt && (
+                    {order.createdAt && (
                       <div className="text-xs text-gray-400">
-                        {new Date(item.createdAt).toLocaleString("tr-TR")}
+                        {new Date(order.createdAt).toLocaleString("tr-TR")}
                       </div>
                     )}
                   </div>
@@ -99,85 +131,66 @@ export default function AdminReturnsPage() {
                   <div className="flex items-center gap-2">
                     {/* STATÜ BADGE'İ */}
                     <span className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-300 text-gray-700">
-                      {item.status === 'PENDING' ? 'Bekliyor' : 
-                       item.status === 'RECEIVED' ? 'İnceleniyor' : 
-                       item.status === 'REFUNDED' ? 'Kabul Edildi' : 
-                       item.status === 'REJECTED' ? 'Reddedildi' : 'Bekliyor'}
+                      {order.status}
                     </span>
 
-                    {/* --- BUTON MANTIĞI BURADA DEĞİŞTİ --- */}
-
-                    {/* 1. ADIM: Sadece PENDING ise 'Teslim Al' göster */}
-                    {(item.status === "PENDING" || !item.status) && (
+                    {/* 1. ADIM: RETURN_REQUESTED ise onay/ret */}
+                    {isRequested && (
                       <Button
                         className="text-sm"
-                        onClick={() => handleStatusUpdate(item, "RECEIVED")}
-                        isLoading={processingId === item.id}
-                      >
-                        Teslim Al
-                      </Button>
-                    )}
-
-                    {/* 2. ADIM: Sadece RECEIVED ise 'Onayla' göster */}
-                    {item.status === "RECEIVED" && (
-                      <Button
-                        className="text-sm"
-                        onClick={() => handleStatusUpdate(item, "REFUNDED")}
-                        isLoading={processingId === item.id}
+                        onClick={() => handleDecision(order, true)}
+                        isLoading={processingId === order.id}
                       >
                         Onayla
                       </Button>
                     )}
 
-                    {/* 3. ADIM: İşlem bitmediyse 'Reddet' hep görünsün */}
-                    {item.status !== "REFUNDED" && item.status !== "REJECTED" && (
+                    {isRequested && (
                       <Button
                         variant="secondary"
-                        className="text-sm ml-2"
-                        onClick={() => handleStatusUpdate(item, "REJECTED")}
-                        isLoading={processingId === item.id}
+                        className="text-sm"
+                        onClick={() => handleDecision(order, false)}
+                        isLoading={processingId === order.id}
                       >
                         Reddet
                       </Button>
                     )}
 
-                    {/* 4. ADIM: İşlem bittiyse yazı göster */}
-                    {(item.status === "REFUNDED" || item.status === "REJECTED") && (
-                       <span className="text-xs text-gray-400 italic ml-2">İşlem Tamamlandı</span>
+                    {canMarkReceived && (
+                      <Button
+                        className="text-sm"
+                        onClick={() => handleMarkReceived(order)}
+                        isLoading={processingId === order.id}
+                      >
+                        Teslim Alındı
+                      </Button>
                     )}
-
                   </div>
                 </div>
 
-                {/* ALT KISIMDAKİ DETAYLAR (AYNI KALDI) */}
-                <div className="text-sm text-gray-600 space-y-1">
+                <div className="space-y-3 text-sm text-gray-600">
                   <div>
-                    <span className="font-medium text-gray-700">
-                      Kargo Firması:
-                    </span>{" "}
-                    {item.cargoFirm || "—"}
+                    <span className="font-medium text-gray-700">Teslimat Adresi:</span>{" "}
+                    {order.shippingAddress || "—"}
                   </div>
-                  <div>
-                    <span className="font-medium text-gray-700">
-                      Takip Kodu:
-                    </span>{" "}
-                    {trackingUrl ? (
-                      <a
-                        href={trackingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-gray-700 hover:underline"
-                      >
-                        🔍 Kargoyu Sorgula
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Sebep:</span>{" "}
-                    {item.reason || "—"}
-                  </div>
+                  {isRequested && (
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">
+                        Admin Notu (Opsiyonel)
+                      </label>
+                      <textarea
+                        className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
+                        rows={3}
+                        value={adminNotes[order.id] ?? ""}
+                        onChange={(event) =>
+                          setAdminNotes((prev) => ({
+                            ...prev,
+                            [order.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             );
