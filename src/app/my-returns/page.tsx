@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import api from "@/services/api";
-import { OrderListResponse, OrderResponse } from "@/types";
+import { OrderListResponse, OrderResponse, OrderStatus } from "@/types";
 import { toast } from "react-toastify";
 
 const statusLabels: Record<string, string> = {
@@ -21,6 +21,12 @@ const statusClasses: Record<string, string> = {
 const defaultStatusClass = "bg-gray-100 text-gray-600";
 const defaultStatusValue = "RETURN_REQUESTED";
 const pageSize = 50;
+const returnStatuses: OrderStatus[] = [
+  "RETURN_REQUESTED",
+  "RETURN_APPROVED",
+  "RETURN_REJECTED",
+  "RETURN_RECEIVED",
+];
 
 export default function MyReturnsPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -45,7 +51,7 @@ export default function MyReturnsPage() {
   }, []);
 
   const returnOrders = useMemo(
-    () => orders.filter((order) => order.status?.toString().includes("RETURN")),
+    () => orders.filter((order) => returnStatuses.includes(order.status)),
     [orders],
   );
 

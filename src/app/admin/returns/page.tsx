@@ -1,25 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "@/services/api";
 import ReturnService from "@/services/return.service";
-import { OrderListResponse, OrderResponse } from "@/types";
+import { OrderListResponse, OrderResponse, OrderStatus } from "@/types";
 import { toast } from "react-toastify";
 import Button from "@/components/ui/Button";
+
+const returnStatuses: OrderStatus[] = [
+  "RETURN_REQUESTED",
+  "RETURN_APPROVED",
+  "RETURN_REJECTED",
+  "RETURN_RECEIVED",
+];
 
 export default function AdminReturnsPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [adminNotes, setAdminNotes] = useState<Record<number, string>>({});
 
-  const fetchReturns = async () => {
+  const fetchReturns = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get<OrderListResponse>("/admin/orders", {
         params: { page: 0, size: 50 },
       });
       const returnOrders = response.data.orders.filter((order) =>
-        order.status?.toString().includes("RETURN"),
+        returnStatuses.includes(order.status),
       );
       setOrders(returnOrders);
     } catch {
@@ -27,24 +35,28 @@ export default function AdminReturnsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchReturns();
-  }, []);
+  }, [fetchReturns]);
 
   const handleDecision = async (order: OrderResponse, approved: boolean) => {
     setProcessingId(order.id);
     try {
-      const adminNotes = window.prompt("Admin notu eklemek ister misiniz?", "")?.trim();
       const response = await ReturnService.processReturnRequest(order.id, {
         approved,
-        adminNotes: adminNotes || undefined,
+        adminNotes: adminNotes[order.id]?.trim() || undefined,
       });
       toast.success(approved ? "İade talebi onaylandı." : "İade talebi reddedildi.");
       setOrders((prev) =>
         prev.map((entry) => (entry.id === order.id ? response.data : entry)),
       );
+      setAdminNotes((prev) => {
+        const next = { ...prev };
+        delete next[order.id];
+        return next;
+      });
     } catch {
       toast.error("İade talebi güncellenemedi.");
     } finally {
@@ -89,11 +101,8 @@ export default function AdminReturnsPage() {
         </h1>
         <div className="space-y-4">
           {sortedReturns.map((order) => {
-            const statusValue = order.status?.toString().toUpperCase() ?? "";
-            const isRequested = statusValue === "RETURN_REQUESTED";
-            const isRejected = statusValue.includes("REJECT");
-            const canMarkReceived =
-              statusValue.includes("RETURN") && !isRequested && !isRejected;
+            const isRequested = order.status === "RETURN_REQUESTED";
+            const canMarkReceived = order.status === "RETURN_APPROVED";
             return (
               <div
                 key={order.id}
@@ -159,9 +168,29 @@ export default function AdminReturnsPage() {
                   </div>
                 </div>
 
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium text-gray-700">Teslimat Adresi:</span>{" "}
-                  {order.shippingAddress || "—"}
+                <div className="space-y-3 text-sm text-gray-600">
+                  <div>
+                    <span className="font-medium text-gray-700">Teslimat Adresi:</span>{" "}
+                    {order.shippingAddress || "—"}
+                  </div>
+                  {isRequested && (
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">
+                        Admin Notu (Opsiyonel)
+                      </label>
+                      <textarea
+                        className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
+                        rows={3}
+                        value={adminNotes[order.id] ?? ""}
+                        onChange={(event) =>
+                          setAdminNotes((prev) => ({
+                            ...prev,
+                            [order.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             );

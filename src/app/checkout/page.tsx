@@ -42,7 +42,14 @@ export default function CheckoutPage() {
       }
       setRedirecting(true);
       toast.info("Ödeme sayfasına yönlendiriliyorsunuz...");
-      window.location.assign(checkoutUrl);
+      try {
+        const redirectUrl = new URL(checkoutUrl, window.location.origin).toString();
+        window.location.assign(redirectUrl);
+      } catch (redirectError) {
+        console.error("Ödeme yönlendirmesi başarısız:", redirectError);
+        setRedirecting(false);
+        toast.error("Ödeme sayfasına yönlendirme başarısız.");
+      }
 
     } catch (error: unknown) {
       console.error(error);
