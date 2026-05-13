@@ -1,39 +1,38 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import ReturnService from "@/services/return.service";
-import { ReturnRequest } from "@/types";
+import api from "@/services/api";
+import { OrderListResponse, OrderResponse } from "@/types";
 import { toast } from "react-toastify";
-import { getTrackingUrl } from "@/utils/cargoTracking";
 
 const statusLabels: Record<string, string> = {
-  PENDING: "İade Talebiniz Alındı",
-  RECEIVED: "İadeniz İnceleniyor",
-  REFUNDED: "İadeniz Kabul Edilmiştir",
-  REJECTED: "İade Reddedildi",
+  RETURN_REQUESTED: "İade Talebiniz Alındı",
+  RETURN_APPROVED: "İade Onaylandı",
+  RETURN_REJECTED: "İade Reddedildi",
+  RETURN_RECEIVED: "İade Teslim Alındı",
 };
 
 const statusClasses: Record<string, string> = {
-  PENDING: "bg-orange-100 text-orange-700",
-  RECEIVED: "bg-blue-100 text-blue-700",
-  REFUNDED: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-700",
+  RETURN_REQUESTED: "bg-orange-100 text-orange-700",
+  RETURN_APPROVED: "bg-green-100 text-green-700",
+  RETURN_REJECTED: "bg-red-100 text-red-700",
+  RETURN_RECEIVED: "bg-blue-100 text-blue-700",
 };
 const defaultStatusClass = "bg-gray-100 text-gray-600";
-const defaultStatusValue = "PENDING";
-
-const getReturnKey = (item: ReturnRequest, index: number) =>
-  item.id ?? `${item.orderId}-${item.userId}-${item.createdAt ?? index}`;
+const defaultStatusValue = "RETURN_REQUESTED";
+const pageSize = 50;
 
 export default function MyReturnsPage() {
-  const [returns, setReturns] = useState<ReturnRequest[]>([]);
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchReturns = async () => {
+  const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await ReturnService.getMyReturns();
-      setReturns(response.data);
+      const response = await api.get<OrderListResponse>("/orders", {
+        params: { page: 0, size: pageSize },
+      });
+      setOrders(response.data.orders);
     } catch {
       toast.error("İade talepleri yüklenemedi.");
     } finally {
@@ -42,17 +41,22 @@ export default function MyReturnsPage() {
   };
 
   useEffect(() => {
-    fetchReturns();
+    fetchOrders();
   }, []);
+
+  const returnOrders = useMemo(
+    () => orders.filter((order) => order.status?.toString().includes("RETURN")),
+    [orders],
+  );
 
   const sortedReturns = useMemo(
     () =>
-      [...returns].sort((a, b) => {
+      [...returnOrders].sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       }),
-    [returns],
+    [returnOrders],
   );
 
   if (loading) {
@@ -66,21 +70,17 @@ export default function MyReturnsPage() {
           İade Taleplerim
         </h1>
         <div className="space-y-4">
-          {sortedReturns.map((item, index) => {
+          {sortedReturns.map((item) => {
             const status = item.status || defaultStatusValue;
-            const trackingUrl = getTrackingUrl(
-              item.cargoFirm,
-              item.trackingCode,
-            );
             return (
               <div
-                key={getReturnKey(item, index)}
+                key={item.id}
                 className="border rounded-xl p-4 space-y-3"
               >
                 <div className="flex flex-wrap justify-between gap-4">
                   <div>
                     <div className="text-sm text-gray-500">
-                      Sipariş #{item.orderId}
+                      Sipariş #{item.id}
                     </div>
                     {item.createdAt && (
                       <div className="text-xs text-gray-400">
@@ -93,35 +93,6 @@ export default function MyReturnsPage() {
                   >
                     {statusLabels[status] ?? status}
                   </span>
-                </div>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <div>
-                    <span className="font-medium text-gray-700">
-                      Kargo Firması:
-                    </span>{" "}
-                    {item.cargoFirm || "—"}
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">
-                      Takip Kodu:
-                    </span>{" "}
-                    {trackingUrl ? (
-                      <a
-                        href={trackingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        🔍 Kargoyu Sorgula
-                      </a>
-                    ) : (
-                      "—"
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Sebep:</span>{" "}
-                    {item.reason || "—"}
-                  </div>
                 </div>
               </div>
             );

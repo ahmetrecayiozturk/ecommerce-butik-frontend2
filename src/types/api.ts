@@ -18,19 +18,6 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
-export type ReturnStatus = 'PENDING' | 'RECEIVED' | 'REFUNDED' | 'REJECTED';
-
-export interface ReturnRequest {
-  id?: number;
-  orderId: number;
-  userId: number;
-  cargoFirm?: string;
-  trackingCode?: string;
-  reason?: string;
-  status?: ReturnStatus;
-  createdAt?: string;
-}
-
 export interface ProductRequest {
   name: string;
   description?: string;
@@ -63,7 +50,7 @@ export interface OrderItemResponse {
   price: number;
   subtotal: number;
   paymentTransactionId?: string;
-  status: 'ACTIVE' | 'CANCELLED' | 'RETURNED'; // <--- YENİ: Statü
+  status: string; // <--- YENİ: Statü
 }
 // -------------------------
 
@@ -73,14 +60,17 @@ export type OrderStatus =
   | 'SHIPPED'
   | 'DELIVERED'
   | 'CANCELLED'
-  | 'RETURN_REQUESTED';
+  | 'RETURN_REQUESTED'
+  | 'RETURN_APPROVED'
+  | 'RETURN_REJECTED'
+  | 'RETURN_RECEIVED';
 
 // OrderResponse içinde items dizisinin bu tipi kullandığından emin ol:
 export interface OrderResponse {
   id: number;
   items: OrderItemResponse[]; // <-- Burası önemli
   totalPrice: number;
-  status: string;
+  status: OrderStatus;
   paymentId?: string;
   shippingAddress?: string;
   cargoFirm?: string;
@@ -152,14 +142,22 @@ export interface PaymentInitiateRequest {
 
 export interface PaymentInitiateResponse {
   status: string;
-  checkoutFormContent: string;
-  paymentPageUrl?: string;
-  token: string;
+  checkoutUrl: string;
+  providerReference: string;
   orderId: number;
 }
 
 export interface CreateOrderRequest {
   shippingAddress: string;
+}
+
+export interface OrderReturnRequest {
+  reason: string;
+}
+
+export interface OrderReturnDecisionRequest {
+  approved: boolean;
+  adminNotes?: string;
 }
 
 export interface AddToCartRequest {

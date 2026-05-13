@@ -4,24 +4,17 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import api from "@/services/api";
 import OrderService from "@/services/order.service";
 import ReturnService from "@/services/return.service";
-import {
-  OrderListResponse,
-  OrderResponse,
-  OrderStatus,
-  ReturnRequest,
-} from "@/types";
+import { OrderListResponse, OrderResponse, OrderStatus } from "@/types";
 import Button from "@/components/ui/Button";
 import { toast } from "react-toastify";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext";
 import { getTrackingUrl } from "@/utils/cargoTracking";
 import { XCircle, AlertCircle } from "lucide-react";
 
 const cancellableStatuses: OrderStatus[] = ["PENDING", "PROCESSING"];
 const returnableStatuses: OrderStatus[] = ["DELIVERED"];
 const trackableStatuses: OrderStatus[] = ["SHIPPED", "DELIVERED"];
-const cargoFirmOptions = ["Yurtiçi", "Aras", "MNG", "PTT"];
 const placeholderValue = "—";
 
 function OrdersContent() {
@@ -30,15 +23,11 @@ function OrdersContent() {
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
   const [returnModalOrder, setReturnModalOrder] = useState<OrderResponse | null>(null);
-  const [returnOrderIds, setReturnOrderIds] = useState<Set<number>>(() => new Set());
   
   const [returnForm, setReturnForm] = useState({
-    cargoFirm: cargoFirmOptions[0],
-    trackingCode: "",
     reason: "",
   });
   
-  const { user } = useAuth();
   const searchParams = useSearchParams();
   const { refreshCart } = useCart();
   const hasShownPaymentSuccess = useRef(false);
@@ -50,12 +39,6 @@ function OrdersContent() {
         params: { page: 0, size: 50 },
       });
       setOrders(ordersResponse.data.orders);
-      try {
-        const returnsResponse = await ReturnService.getMyReturns();
-        setReturnOrderIds(new Set(returnsResponse.data.map((item) => item.orderId)));
-      } catch {
-        setReturnOrderIds(new Set());
-      }
     } catch {
       toast.error("Siparişler yüklenemedi.");
     } finally {
@@ -117,8 +100,6 @@ function OrdersContent() {
   // --- İADE MODALI İŞLEMLERİ ---
   const openReturnModal = (order: OrderResponse) => {
     setReturnForm({
-      cargoFirm: cargoFirmOptions[0],
-      trackingCode: "",
       reason: "",
     });
     setReturnModalOrder(order);
@@ -126,25 +107,14 @@ function OrdersContent() {
 
   const submitReturnRequest = async () => {
     if (!returnModalOrder) return;
-    if (!user?.id) {
-      toast.error("Kullanıcı bilgisi bulunamadı.");
-      return;
-    }
-    if (!returnForm.trackingCode.trim() || !returnForm.reason.trim()) {
+    if (!returnForm.reason.trim()) {
       toast.error("Lütfen tüm alanları doldurun.");
       return;
     }
     setProcessingId(returnModalOrder.id);
     try {
-      const payload: ReturnRequest = {
-        orderId: returnModalOrder.id,
-        userId: user.id,
-        cargoFirm: returnForm.cargoFirm,
-        trackingCode: returnForm.trackingCode.trim(),
-        reason: returnForm.reason.trim(),
-        status: "PENDING",
-      };
-      await ReturnService.create(payload);
+      const payload = { reason: returnForm.reason.trim() };
+      await ReturnService.requestReturn(returnModalOrder.id, payload);
       toast.success("İade talebi oluşturuldu.");
       setReturnModalOrder(null);
       fetchOrders();
@@ -179,7 +149,7 @@ function OrdersContent() {
         <div className="space-y-6">
           {orders.map((order) => {
             const trackingUrl = getTrackingUrl(order.cargoFirm, order.trackingNumber);
-            const hasReturnRequest = returnOrderIds.has(order.id);
+            const hasReturnRequest = order.status?.toString().includes("RETURN");
             const hasTrackingNumber = Boolean(order.trackingNumber);
             const isOrderCancellable = cancellableStatuses.includes(order.status);
 
@@ -217,7 +187,7 @@ function OrdersContent() {
                     )}
                     
                     {/* İade Butonu (Teslim Edildiyse) */}
-                    {returnableStatuses.includes(order.status) &&
+                    {(returnableStatuses.includes(order.status) || hasReturnRequest) &&
                       (hasReturnRequest ? (
                         <Button variant="outline" disabled className="text-xs">İade Talebiniz Mevcut</Button>
                       ) : (
@@ -338,25 +308,6 @@ function OrdersContent() {
           <div className="bg-white rounded-2xl shadow-lg border p-6 w-full max-w-md space-y-4">
             <h2 className="text-lg font-semibold text-gray-800">İade Talebi Oluştur</h2>
             <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Kargo Firması</label>
-                <select
-                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
-                  value={returnForm.cargoFirm}
-                  onChange={(e) => setReturnForm((prev) => ({ ...prev, cargoFirm: e.target.value }))}
-                >
-                  {cargoFirmOptions.map((firm) => <option key={firm} value={firm}>{firm}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Takip Kodu</label>
-                <input
-                  className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
-                  value={returnForm.trackingCode}
-                  onChange={(e) => setReturnForm((prev) => ({ ...prev, trackingCode: e.target.value }))}
-                  required
-                />
-              </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">İade Sebebi</label>
                 <textarea
