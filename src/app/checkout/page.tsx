@@ -43,7 +43,10 @@ export default function CheckoutPage() {
       setRedirecting(true);
       toast.info("Ödeme sayfasına yönlendiriliyorsunuz...");
       try {
-        const redirectUrl = new URL(checkoutUrl, window.location.origin).toString();
+        const redirectUrl =
+          checkoutUrl.startsWith("http://") || checkoutUrl.startsWith("https://")
+            ? checkoutUrl
+            : new URL(checkoutUrl, window.location.origin).toString();
         window.location.assign(redirectUrl);
       } catch (redirectError) {
         console.error("Ödeme yönlendirmesi başarısız:", redirectError);

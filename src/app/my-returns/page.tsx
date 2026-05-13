@@ -76,21 +76,21 @@ export default function MyReturnsPage() {
           İade Taleplerim
         </h1>
         <div className="space-y-4">
-          {sortedReturns.map((item) => {
-            const status = item.status || defaultStatusValue;
+          {sortedReturns.map((order) => {
+            const status = order.status || defaultStatusValue;
             return (
               <div
-                key={item.id}
+                key={order.id}
                 className="border rounded-xl p-4 space-y-3"
               >
                 <div className="flex flex-wrap justify-between gap-4">
                   <div>
                     <div className="text-sm text-gray-500">
-                      Sipariş #{item.id}
+                      Sipariş #{order.id}
                     </div>
-                    {item.createdAt && (
+                    {order.createdAt && (
                       <div className="text-xs text-gray-400">
-                        {new Date(item.createdAt).toLocaleString("tr-TR")}
+                        {new Date(order.createdAt).toLocaleString("tr-TR")}
                       </div>
                     )}
                   </div>

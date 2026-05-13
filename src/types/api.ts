@@ -42,6 +42,8 @@ export interface ProductResponse {
 export type Product = ProductResponse;
 
 // --- GÜNCELLENEN KISIM ---
+export type OrderItemStatus = 'ACTIVE' | 'CANCELLED' | 'RETURNED';
+
 export interface OrderItemResponse {
   id: number; // <--- YENİ: Backend'deki OrderItem ID
   productId: number;
@@ -50,7 +52,7 @@ export interface OrderItemResponse {
   price: number;
   subtotal: number;
   paymentTransactionId?: string;
-  status: string;
+  status: OrderItemStatus;
 }
 
 export type OrderStatus =

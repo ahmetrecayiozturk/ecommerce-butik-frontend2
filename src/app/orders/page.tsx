@@ -13,7 +13,6 @@ import { getTrackingUrl } from "@/utils/cargoTracking";
 import { XCircle, AlertCircle } from "lucide-react";
 
 const cancellableStatuses: OrderStatus[] = ["PENDING", "PROCESSING"];
-const returnableStatuses: OrderStatus[] = ["DELIVERED"];
 const trackableStatuses: OrderStatus[] = ["SHIPPED", "DELIVERED"];
 const placeholderValue = "—";
 
@@ -149,7 +148,9 @@ function OrdersContent() {
         <div className="space-y-6">
           {orders.map((order) => {
             const trackingUrl = getTrackingUrl(order.cargoFirm, order.trackingNumber);
-            const hasReturnRequest = order.status === "RETURN_REQUESTED";
+            const isReturnRequested = order.status === "RETURN_REQUESTED";
+            const canShowReturnAction =
+              order.status === "DELIVERED" || isReturnRequested;
             const hasTrackingNumber = Boolean(order.trackingNumber);
             const isOrderCancellable = cancellableStatuses.includes(order.status);
 
@@ -187,8 +188,8 @@ function OrdersContent() {
                     )}
                     
                     {/* İade Butonu (Teslim Edildiyse) */}
-                    {(returnableStatuses.includes(order.status) || hasReturnRequest) &&
-                      (hasReturnRequest ? (
+                    {canShowReturnAction &&
+                      (isReturnRequested ? (
                         <Button variant="outline" disabled className="text-xs">İade Talebiniz Mevcut</Button>
                       ) : (
                         <Button
