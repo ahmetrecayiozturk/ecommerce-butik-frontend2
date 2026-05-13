@@ -149,7 +149,7 @@ function OrdersContent() {
         <div className="space-y-6">
           {orders.map((order) => {
             const trackingUrl = getTrackingUrl(order.cargoFirm, order.trackingNumber);
-            const hasReturnRequest = order.status?.toString().includes("RETURN");
+            const hasReturnRequest = order.status === "RETURN_REQUESTED";
             const hasTrackingNumber = Boolean(order.trackingNumber);
             const isOrderCancellable = cancellableStatuses.includes(order.status);
 

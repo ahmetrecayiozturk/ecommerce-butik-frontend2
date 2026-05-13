@@ -11,6 +11,11 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
+  const buttonLabel = redirecting
+    ? 'Yönlendiriliyor...'
+    : loading
+      ? 'İşleniyor...'
+      : 'Ödeme Sayfasına Git';
 
   const handlePaymentProcess = async () => {
     setLoading(true);
@@ -85,7 +90,7 @@ export default function CheckoutPage() {
               isLoading={loading}
               disabled={redirecting}
           >
-              {redirecting ? 'Yönlendiriliyor...' : loading ? 'İşleniyor...' : 'Ödeme Sayfasına Git'}
+              {buttonLabel}
           </Button>
         </div>
       </div>

@@ -50,9 +50,8 @@ export interface OrderItemResponse {
   price: number;
   subtotal: number;
   paymentTransactionId?: string;
-  status: string; // <--- YENİ: Statü
+  status: string;
 }
-// -------------------------
 
 export type OrderStatus =
   | 'PENDING'
@@ -65,7 +64,6 @@ export type OrderStatus =
   | 'RETURN_REJECTED'
   | 'RETURN_RECEIVED';
 
-// OrderResponse içinde items dizisinin bu tipi kullandığından emin ol:
 export interface OrderResponse {
   id: number;
   items: OrderItemResponse[]; // <-- Burası önemli
